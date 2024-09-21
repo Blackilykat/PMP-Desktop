@@ -1,0 +1,141 @@
+package dev.blackilykat.messages;
+
+import com.google.gson.JsonObject;
+import dev.blackilykat.ServerConnection;
+import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.messages.exceptions.MessageInvalidContentsException;
+
+/**
+ * Used to communicate that an unexpected error of any kind has occurred.
+ */
+public class ErrorMessage extends Message {
+    public static final String MESSAGE_TYPE = "ERROR";
+    /**
+     * Human-readable information about the error (could be a stacktrace/exception name for {@link ErrorType#SERVER})
+     * <br />If empty, it is not included in the message sent to the client.
+     */
+    public String info = "";
+
+    /**
+     * How long the client should wait before retrying something.
+     * <br />If negative, it is not included in the message sent to the client.
+     * @see Action#RETRY
+     * @see Action#RECONNECT
+     */
+    public int secondsToRetry = -1;
+
+    /**
+     * If the error was triggered by a message, the {@link Message#messageId} of said message.
+     * <br />If negative, it is not included in the message sent to the client.
+     */
+    public int relativeToMessage = -1;
+
+    public final ErrorType errorType;
+    public final Action action;
+
+    public ErrorMessage(ErrorType errorType) {
+        this.errorType = errorType;
+        this.action = Action.UNKNOWN;
+    }
+    public ErrorMessage(ErrorType errorType, Action action) {
+        this.errorType = errorType;
+        this.action = action;
+    }
+
+    @Override
+    public String getMessageType() {
+        return MESSAGE_TYPE;
+    }
+
+    @Override
+    public void fillContents(JsonObject object) {
+        if(info != null && !info.isEmpty()) object.addProperty("info",  info);
+        if(secondsToRetry >= 0) object.addProperty("seconds_to_retry", secondsToRetry);
+        if(relativeToMessage >= 0) object.addProperty("relative_to_message", relativeToMessage);
+        object.addProperty("error_type", errorType.toString());
+        object.addProperty("action", action.toString());
+    }
+
+    @Override
+    public void handle(ServerConnection connection) {
+    }
+
+    //@Override
+    public static ErrorMessage fromJson(JsonObject json) throws MessageException {
+        ErrorType type;
+        Action action;
+        if(json.has("error_type")) {
+            type = ErrorType.valueOf(json.get("error_type").getAsString());
+        } else {
+            throw new MessageInvalidContentsException("Missing error_type!");
+        }
+        if(json.has("action")) {
+            action= Action.valueOf(json.get("action").getAsString());
+        } else {
+            throw new MessageInvalidContentsException("Missing action!");
+        }
+        ErrorMessage errorMessage = new ErrorMessage(type, action);
+        if(json.has("info")) {
+            errorMessage.info = json.get("info").getAsString();
+        }
+        if(json.has("seconds_to_retry")) {
+            errorMessage.secondsToRetry = json.get("seconds_to_retry").getAsInt();
+        }
+        if(json.has("relative_to_message")) {
+            errorMessage.relativeToMessage = json.get("relative_to_message").getAsInt();
+        }
+        return errorMessage;
+    }
+
+    /**
+     * Generally, what caused the error
+     */
+    public enum ErrorType {
+        /**
+         * An error occurred internally in the server, there is no further information available (but there may be an
+         * explanation
+         */
+        SERVER,
+        /**
+         * The client sent an incorrectly formatted message.
+         */
+        MESSAGE_FORMAT,
+        /**
+         * The client sent a correctly formatted message with non-missing invalid contents.
+         */
+        MESSAGE_INVALID_CONTENTS,
+        /**
+         * The client sent a correctly formatted message with missing contents.
+         */
+        MESSAGE_MISSING_CONTENTS,
+        /**
+         * The client tried to something that cannot be done at the moment (for example, adding a file to the library
+         * while another client is already doing that). Ideally paired with {@link Action#RETRY} and
+         * {@link #secondsToRetry}
+         */
+        BUSY
+    }
+
+    /**
+     * How the client should behave after receiving this message.
+     */
+    public enum Action {
+        /**
+         * The client can decide how to react (may be a popup, automatic report, ignoring...)
+         */
+        UNKNOWN,
+        /**
+         * The client should retry doing what it was trying to do in {@link #secondsToRetry} seconds. This should only
+         * be sent if the error was triggered by a message sent by the client.
+         */
+        RETRY,
+        /**
+         * The client should disconnect from the server without automatically reconnecting
+         */
+        DISCONNECT,
+        /**
+         * The client should disconnect and try to reconnect at intervals of {@link #secondsToRetry} seconds
+         */
+        RECONNECT
+    }
+}
