@@ -2,10 +2,14 @@ package dev.blackilykat;
 
 import dev.blackilykat.messages.LibraryActionMessage;
 import dev.blackilykat.util.Icons;
+import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.SongListWidget;
+import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFilterPanel;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.metadata.Metadata;
 import org.kc7bfi.jflac.metadata.VorbisComment;
+import org.kc7bfi.jflac.metadata.VorbisString;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -22,13 +26,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
 public class Library {
     public static final Library INSTANCE = new Library();
     public List<Track> tracks = new ArrayList<>();
+    public List<Track> filteredTracks = new ArrayList<>();
+    public List<LibraryFilter> filters = new ArrayList<>();
     public boolean loaded = false;
 
 
@@ -65,18 +73,19 @@ public class Library {
                 }
             }
         }
-        Main.songListWidget.scrollPaneContents.removeAll();
-        for(Library.Track element : Library.INSTANCE.tracks) {
-            System.out.println("Found element " + element.label.getText());
-            Main.songListWidget.scrollPaneContents.add(element);
-        }
-        Main.songListWidget.revalidate();
-        Main.songListWidget.repaint();
         loaded = true;
         // allow main thread to connect to server, since library is now loaded
         synchronized(this) {
             notifyAll();
         }
+
+        for(LibraryFilterPanel panel : Main.libraryFiltersWidget.panels) {
+            panel.filter.reloadOptions();
+        }
+
+        reloadFilters();
+
+        Main.libraryFiltersWidget.reloadElements();
     }
 
     private List<File> search(File path) {
@@ -91,6 +100,26 @@ public class Library {
         return results;
     }
 
+    public void reloadFilters() {
+        filteredTracks.clear();
+        filteredTracks.addAll(tracks);
+        System.out.println("RELOADING FILTERS");
+        for(LibraryFilter filter : filters) {
+            System.out.println("FILTER " + filter.key);
+            filter.reloadMatching();
+            filteredTracks.clear();
+            filteredTracks.addAll(filter.matchingTracks);
+        }
+
+        Main.songListWidget.scrollPaneContents.removeAll();
+        for(Library.Track element : Library.INSTANCE.filteredTracks) {
+            Main.songListWidget.scrollPaneContents.add(element);
+        }
+        Main.songListWidget.revalidate();
+        Main.songListWidget.repaint();
+    }
+
+    //TODO move panel to a different class so this is more general
     public static class Track extends JPanel {
         public String title;
         private File file;
@@ -98,6 +127,7 @@ public class Library {
         private JButton button;
         public JLabel label;
         public JPopupMenu popup;
+        public List<Pair<String, String>> metadata = new ArrayList<>();
         /**
          * CRC32 checksum of the track
          */
@@ -106,7 +136,37 @@ public class Library {
         public Track(File path, SongListWidget list) {
             this.file = path;
             this.list = list;
-            this.title = readTitle();
+            if(path.getName().endsWith(".flac")) {
+                try {
+                    FLACDecoder decoder = new FLACDecoder(new FileInputStream(file));
+                    Metadata[] metadataList = decoder.readMetadata();
+                    for(Metadata metadataItem : metadataList) {
+                        if(!(metadataItem instanceof VorbisComment commentMetadata)) continue;
+                        String title = "";
+                        ArrayList<String> artists = new ArrayList<>();
+                        for(VorbisString comment : commentMetadata.getComments()) {
+                            String[] parts = comment.toString().split("=");
+                            // metadata can have = symbol, the key can't. only the first = splits key and value.
+                            Pair<String, String> pair = new Pair<>(parts[0], Arrays.stream(parts).skip(1).collect(Collectors.joining("=")));
+                            metadata.add(pair);
+                            if(pair.key.equals("title")) {
+                                title = pair.value;
+                            } else if (pair.key.equals("artist")) {
+                                artists.add(pair.value);
+                            }
+                        }
+                        if(title.isEmpty()) {
+                            this.title = path.getName();
+                        } else {
+                            this.title = title
+                                    + (artists.isEmpty() ? "" : " - ")
+                                    + artists.stream().collect(Collectors.joining(", "));
+                        }
+                    }
+                } catch (IOException ignored) {}
+            } else {
+                this.title = path.getName();
+            }
 
             this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
             this.setAlignmentX(0);
@@ -183,22 +243,6 @@ public class Library {
             public void actionPerformed(ActionEvent e) {
                 song.list.audio.startPlaying(song.getFile().getPath());
             }
-        }
-
-        public String readTitle() {
-            if(!file.getName().endsWith(".flac")) return file.getName();
-            try {
-                FLACDecoder decoder = new FLACDecoder(new FileInputStream(file));
-                Metadata[] metadataList = decoder.readMetadata();
-                for(Metadata metadata : metadataList) {
-                    if(!(metadata instanceof VorbisComment commentMetadata)) continue;
-
-                    String[] title = commentMetadata.getCommentByName("title");
-                    if(title.length < 1) return file.getName();
-                    return title[0] + " - " + String.join(", ", commentMetadata.getCommentByName("artist"));
-                }
-            } catch (IOException ignored) {}
-            return file.getName();
         }
     }
 

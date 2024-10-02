@@ -12,7 +12,6 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SpringLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -66,17 +65,6 @@ public class SongListWidget extends Widget {
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(this.getParent().getWidth(), -1);
-    }
-
-    private class ScrollablePanel extends JPanel {
-        @Override
-        public Dimension getPreferredSize() {
-            int height = 0;
-            for (Component component : this.getComponents()) {
-                height += component.getHeight();
-            }
-            return new Dimension(this.getParent().getWidth(), height);
-        }
     }
 
     // insanity but it only appears in 1 menu if i use the same object

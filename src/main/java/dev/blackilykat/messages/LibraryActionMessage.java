@@ -7,6 +7,7 @@ import dev.blackilykat.Library;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.util.Pair;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -136,15 +137,5 @@ public class LibraryActionMessage extends Message {
          * Change the metadata of a song while keeping the audio data untouched
          */
         CHANGE_METADATA
-    }
-
-    public static class Pair<T, U> {
-        public T key;
-        public U value;
-
-        public Pair(T key, U value) {
-            this.key = key;
-            this.value = value;
-        }
     }
 }

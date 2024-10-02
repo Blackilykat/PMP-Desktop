@@ -17,7 +17,7 @@ public class SongPathWidget extends Widget {
         this.add(inputField);
         this.add(confirmButton);
 
-        layout.putConstraint(SpringLayout.WEST, inputField, 0, SpringLayout.WEST, this);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, inputField, (int) -confirmButton.getPreferredSize().getWidth()/2, SpringLayout.HORIZONTAL_CENTER, this);
         layout.putConstraint(SpringLayout.NORTH, inputField, 0, SpringLayout.NORTH, this);
 
         layout.putConstraint(SpringLayout.WEST, confirmButton, 0, SpringLayout.EAST, inputField);
@@ -28,7 +28,12 @@ public class SongPathWidget extends Widget {
 
     @Override
     public Dimension getPreferredSize() {
-        return new Dimension(500, 30);
+        return new Dimension(this.getParent().getWidth(), 30);
+    }
+
+    @Override
+    public Dimension getMinimumSize() {
+        return getPreferredSize();
     }
 
     public static class ConfirmButtonListener implements ActionListener {

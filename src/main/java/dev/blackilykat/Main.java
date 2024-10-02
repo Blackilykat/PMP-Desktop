@@ -1,13 +1,14 @@
 package dev.blackilykat;
 
+import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.SongListWidget;
 import dev.blackilykat.widgets.SongPathWidget;
-import org.apache.batik.ext.swing.GridBagConstants;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.IOException;
@@ -19,6 +20,7 @@ public class Main {
     public static SongPathWidget songPathWidget;
     public static PlayBarWidget playBarWidget;
     public static SongListWidget songListWidget;
+    public static LibraryFiltersWidget libraryFiltersWidget;
 
     public static void main(String[] args) {
         // enable text antialiasing cause its off by default for some stupid reason
@@ -34,10 +36,38 @@ public class Main {
 
             GridBagConstraints constraints = new GridBagConstraints();
 
+            SongPathWidget tempPanel = new SongPathWidget();
             constraints.gridx = 0;
             constraints.gridy = 0;
-            SongPathWidget tempPanel = new SongPathWidget();
+            constraints.weightx = 1;
+            constraints.weighty = 0;
+            constraints.gridwidth = GridBagConstraints.REMAINDER;
+            constraints.anchor = GridBagConstraints.NORTH;
+            constraints.fill = GridBagConstraints.HORIZONTAL;
             mainWindow.add(tempPanel, constraints);
+
+            constraints = new GridBagConstraints();
+
+            LibraryFiltersWidget libraryFiltersWidget = new LibraryFiltersWidget();
+            libraryFiltersWidget.setBackground(new Color(255, 0, 0));
+            constraints.gridx = 0;
+            constraints.gridy = 1;
+            constraints.weightx = 0;
+            constraints.weighty = 1;
+            constraints.anchor = GridBagConstraints.WEST;
+            constraints.fill = GridBagConstraints.VERTICAL;
+            mainWindow.add(libraryFiltersWidget, constraints);
+
+            constraints = new GridBagConstraints();
+
+            SongListWidget songListWidget = new SongListWidget(Audio.INSTANCE);
+            constraints.gridx = 1;
+            constraints.gridy = 1;
+            constraints.weightx = 2;
+            constraints.weighty = 2;
+            constraints.anchor = GridBagConstraints.NORTH;
+            constraints.fill = GridBagConstraints.BOTH;
+            mainWindow.add(songListWidget, constraints);
 
             constraints = new GridBagConstraints();
 
@@ -46,22 +76,16 @@ public class Main {
             constraints.gridy = 2;
             constraints.weighty = 0;
             constraints.weightx = 1;
-            constraints.anchor = GridBagConstants.SOUTH;
-            constraints.fill = GridBagConstants.HORIZONTAL;
+            constraints.anchor = GridBagConstraints.SOUTH;
+            constraints.fill = GridBagConstraints.HORIZONTAL;
+            constraints.gridwidth = GridBagConstraints.REMAINDER;
             mainWindow.add(playBarWidget, constraints);
 
-            SongListWidget songListWidget = new SongListWidget(Audio.INSTANCE);
-            constraints.gridx = 0;
-            constraints.gridy = 1;
-            constraints.weightx = 2;
-            constraints.weighty = 2;
-            constraints.anchor = GridBagConstants.NORTH;
-            constraints.fill = GridBagConstants.BOTH;
-            mainWindow.add(songListWidget, constraints);
 
             Main.songPathWidget = tempPanel;
             Main.playBarWidget = playBarWidget;
             Main.songListWidget = songListWidget;
+            Main.libraryFiltersWidget = libraryFiltersWidget;
             Library.INSTANCE.reload();
 
             mainWindow.setVisible(true);
