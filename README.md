@@ -13,3 +13,8 @@ Everything is still in pre-alpha. Here's what that means:
 |   Alpha   | Secure, may break between versions but there will be proper versions, usable, some core features still missing                                                                     |
 |   Beta    | Usable, all core features are implemented, may break between versions, lots of bugs                                                                                                |
 |  Release  | Usable, all core features are implemented, should not break between versions (retro-compatible server), minimal amount of bugs (can't aim for bug free because that's unrealistic) |
+
+## Discord
+I made a discord server for status and development updates, as well as discussions or suggestions about the project. Here's the invite link:
+
+https://discord.gg/qKAsGrVFgy
