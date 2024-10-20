@@ -24,32 +24,33 @@ import dev.blackilykat.widgets.ScrollablePanel;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SpringLayout;
-import java.awt.AlphaComposite;
 import java.awt.Color;
-import java.awt.Composite;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class LibraryFilterPanel extends JPanel {
     public LibraryFilter filter;
+    private LibraryFiltersWidget widget = null;
     SpringLayout layout = new SpringLayout();
     JLabel header = new JLabel();
     JPanel optionsContainer = new ScrollablePanel();
     JScrollPane optionsScrollContainer = new JScrollPane(optionsContainer);
+    JPopupMenu popup;
 
-    public LibraryFilterPanel(LibraryFilter filter) {
+    public LibraryFilterPanel(LibraryFilter filter, LibraryFiltersWidget widget) {
         this.filter = filter;
+        this.widget = widget;
         if(filter.panel == null) {
             filter.panel = this;
         }
@@ -71,6 +72,39 @@ public class LibraryFilterPanel extends JPanel {
 
         filter.reloadOptions();
         filter.reloadMatching();
+
+        popup = new JPopupMenu();
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        deleteItem.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(widget != null) {
+                    widget.panels.remove(LibraryFilterPanel.this);
+                    filter.library.filters.remove(filter);
+                    widget.reloadElements();
+                    filter.library.reloadFilters();
+                } else {
+                    System.err.println("WARNING: Attempted to delete widgetless filter! Ignoring");
+                }
+            }
+        });
+        popup.add(deleteItem);
+        popup.add(widget.getAddFilterPopupItem());
+
+        MouseListener popupListener = new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+
+            private void maybeShowPopup(MouseEvent e) {
+                if(e.isPopupTrigger()) {
+                    popup.show(LibraryFilterPanel.this, e.getX(), e.getY());
+                }
+            }
+        };
+        this.addMouseListener(popupListener);
+        optionsContainer.addMouseListener(popupListener);
     }
 
     public void reloadOptions() {

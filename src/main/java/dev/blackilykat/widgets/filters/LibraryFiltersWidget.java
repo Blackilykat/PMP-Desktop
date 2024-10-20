@@ -23,12 +23,16 @@ package dev.blackilykat.widgets.filters;
 import dev.blackilykat.Library;
 import dev.blackilykat.widgets.Widget;
 
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.SpringLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,9 +48,26 @@ public class LibraryFiltersWidget extends Widget {
         layout.putConstraint(SpringLayout.EAST, container, 0, SpringLayout.EAST, this);
         layout.putConstraint(SpringLayout.WEST, container, 0, SpringLayout.WEST, this);
 
-        panels.add(new LibraryFilterPanel(new LibraryFilter(Library.INSTANCE, "artist")));
-        panels.add(new LibraryFilterPanel(new LibraryFilter(Library.INSTANCE, "album")));
-        panels.add(new LibraryFilterPanel(new LibraryFilter(Library.INSTANCE, "instrumental")));
+        JPopupMenu popup = new JPopupMenu();
+        popup.add(this.getAddFilterPopupItem());
+
+        this.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+
+            private void maybeShowPopup(MouseEvent e) {
+                if(e.isPopupTrigger()) {
+                    popup.show(LibraryFiltersWidget.this, e.getX(), e.getY());
+                }
+            }
+        });
 
         reloadElements();
     }
@@ -56,8 +77,6 @@ public class LibraryFiltersWidget extends Widget {
         container.setLayout(new GridBagLayout());
         GridBagConstraints constraints;
         for(LibraryFilterPanel panel : panels) {
-            System.out.println("Aaaaa");
-
             constraints = new GridBagConstraints();
             constraints.gridx = 0;
             constraints.gridy = GridBagConstraints.RELATIVE;
@@ -66,6 +85,7 @@ public class LibraryFiltersWidget extends Widget {
             constraints.fill = GridBagConstraints.BOTH;
             container.add(panel, constraints);
         }
+        updateUI();
     }
 
     @Override
@@ -76,5 +96,20 @@ public class LibraryFiltersWidget extends Widget {
     @Override
     public Dimension getMinimumSize() {
         return getPreferredSize();
+    }
+
+    public JMenuItem getAddFilterPopupItem() {
+        JMenuItem item = new JMenuItem("Add Filter");
+        item.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                String answer = JOptionPane.showInputDialog("Insert the metadata to filter through");
+                LibraryFilterPanel panel = new LibraryFilterPanel(new LibraryFilter(Library.INSTANCE, answer), LibraryFiltersWidget.this);
+                panels.add(panel);
+                reloadElements();
+                panel.filter.library.reloadFilters();
+            }
+        });
+        return item;
     }
 }
