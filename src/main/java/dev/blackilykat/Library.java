@@ -152,6 +152,15 @@ public class Library {
          * CRC32 checksum of the track
          */
         public long checksum = -1;
+        /**
+         * The pcm audio data for this track. Should only be anything other than null when it's either being played or
+         * about to.
+         */
+        public byte[] pcmData = null;
+        /**
+         * How many bytes of {@link #pcmData} are loaded.
+         */
+        public int loaded = 0;
 
         public Track(File path, SongListWidget list) {
             this.file = path;
@@ -253,15 +262,16 @@ public class Library {
         }
 
         private static class PlayButtonListener implements ActionListener {
-            public final Track song;
+            public final Track track;
 
             public PlayButtonListener(Track song) {
-                this.song = song;
+                this.track = song;
             }
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                song.list.audio.startPlaying(song.getFile().getPath());
+                track.list.audio.queueManager.setCurrentTrack(track);
+                track.list.audio.startPlaying(track.getFile().getPath());
             }
         }
     }

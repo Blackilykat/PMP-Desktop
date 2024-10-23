@@ -21,6 +21,7 @@
 package dev.blackilykat.widgets.playbar;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.TrackQueueManager;
 import dev.blackilykat.util.Icons;
 import dev.blackilykat.widgets.Widget;
 
@@ -35,8 +36,8 @@ public class PlayBarWidget extends Widget {
     public static JButton playPauseButton = new JButton(Icons.svgIcon(Icons.PLAY, 16, 16));
     public static JButton nextTrackButton = new JButton(Icons.svgIcon(Icons.FORWARD, 16, 16));
     public static JButton previousTrackButton = new JButton(Icons.svgIcon(Icons.BACKWARD, 16, 16));
-    public static JButton shuffleButton = new JButton(Icons.svgIcon(Icons.SHUFFLE, 16, 16));
-    public static JButton repeatButton = new JButton(Icons.svgIcon(Icons.REPEAT, 16, 16));
+    public static JButton shuffleButton = new JButton(Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16));
+    public static JButton repeatButton = new JButton(Icons.svgIcon(Icons.REPEAT_OFF, 16, 16));
     public static TimeBar timeBar = new TimeBar();
 
     public PlayBarWidget() {
@@ -82,7 +83,7 @@ public class PlayBarWidget extends Widget {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            Audio.INSTANCE.setPlaying(!getPlaying());
+
         }
     }
 
@@ -100,6 +101,33 @@ public class PlayBarWidget extends Widget {
     }
 
     static {
-        playPauseButton.addActionListener(new PlayPauseButtonListener());
+        playPauseButton.addActionListener(e -> {
+            Audio.INSTANCE.setPlaying(!getPlaying());
+        });
+        shuffleButton.addActionListener(e -> {
+            Audio.INSTANCE.queueManager.setShuffle(switch(Audio.INSTANCE.queueManager.getShuffle()) {
+                case OFF -> TrackQueueManager.ShuffleOption.ON;
+                case ON -> TrackQueueManager.ShuffleOption.OFF;
+            });
+        });
+        repeatButton.addActionListener(e -> {
+            Audio.INSTANCE.queueManager.setRepeat(switch(Audio.INSTANCE.queueManager.getRepeat()) {
+                case OFF -> TrackQueueManager.RepeatOption.ALL;
+                case ALL -> TrackQueueManager.RepeatOption.TRACK;
+                case TRACK -> TrackQueueManager.RepeatOption.OFF;
+            });
+        });
+        nextTrackButton.addActionListener(e -> {
+            Audio.INSTANCE.queueManager.nextTrack();
+            if(Audio.INSTANCE.queueManager.currentTrack != null) {
+                Audio.INSTANCE.startPlaying(Audio.INSTANCE.queueManager.currentTrack.getFile().getPath());
+            }
+        });
+        previousTrackButton.addActionListener(e -> {
+            Audio.INSTANCE.queueManager.previousTrack();
+            if(Audio.INSTANCE.queueManager.currentTrack != null) {
+                Audio.INSTANCE.startPlaying(Audio.INSTANCE.queueManager.currentTrack.getFile().getPath());
+            }
+        });
     }
 }

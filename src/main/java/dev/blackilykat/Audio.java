@@ -46,9 +46,8 @@ public class Audio {
     private Path currentlyPlayingPath = null;
     private boolean playing = false;
     private int position = 0;
-    public int loaded = 0;
 
-    public byte[] song = new byte[0];
+    public TrackQueueManager queueManager = new TrackQueueManager(Library.INSTANCE);
 
     // any other configuration doesn't work
     // might try to make it configurable in the future but also that sounds like a pain to implement
@@ -112,7 +111,7 @@ public class Audio {
                 setPlaying(true);
                 reloadSong();
                 PlayBarWidget.timeBar.setMinimum(0);
-                PlayBarWidget.timeBar.setMaximum(song.length);
+                PlayBarWidget.timeBar.setMaximum(queueManager.currentTrack.pcmData.length);
             } catch (InvalidPathException | IOException ignored) {}
         });
 
@@ -165,12 +164,23 @@ public class Audio {
                         Thread.sleep(100);
                         continue;
                     }
-                    if (instance.position >= instance.song.length-4) {
+                    if(instance.queueManager.currentTrack == null) {
+                        setPlaying(false);
+                        continue;
+                    }
+                    if(instance.queueManager.currentTrack.pcmData == null) {
+                        synchronized(instance.queueManager.currentTrack) {
+                            instance.queueManager.currentTrack.wait();
+                        }
+                        continue;
+                    }
+                    if (instance.position >= instance.queueManager.currentTrack.pcmData.length-4) {
                         instance.setPlaying(false);
-                        int index = Library.INSTANCE.findIndex(instance.currentlyPlayingPath.toFile());
-                        Library.Track newSong = Library.INSTANCE.getItem(index+1);
-                        if(newSong != null) {
-                            startPlaying(newSong.getFile().getPath());
+                        queueManager.nextTrack();
+                        System.out.println("hi");
+                        if(queueManager.currentTrack != null) {
+                            System.out.println("hi");
+                            startPlaying(queueManager.currentTrack.getFile().getPath());
                         }
                         continue;
                     }
@@ -181,18 +191,18 @@ public class Audio {
                     for (
                         int i = 0;
                         i < bufferSize - 3 &&
-                                i + instance.position < instance.song.length - 3;
+                                i + instance.position < instance.queueManager.currentTrack.pcmData.length - 3;
                         i += 4
                     ) {
                         // RIFF is little endian...
 
                         // L
-                        buffer[i + 1] = instance.song[instance.position];
-                        buffer[i] = instance.song[instance.position + 1];
+                        buffer[i + 1] = instance.queueManager.currentTrack.pcmData[instance.position];
+                        buffer[i] = instance.queueManager.currentTrack.pcmData[instance.position + 1];
 
                         // R
-                        buffer[i + 3] = instance.song[instance.position + 2];
-                        buffer[i + 2] = instance.song[instance.position + 3];
+                        buffer[i + 3] = instance.queueManager.currentTrack.pcmData[instance.position + 2];
+                        buffer[i + 2] = instance.queueManager.currentTrack.pcmData[instance.position + 3];
                         instance.position += 4;
                     }
                     instance.sourceDataLine.write(buffer, 0, bufferSize);

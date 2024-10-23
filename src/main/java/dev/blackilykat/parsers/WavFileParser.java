@@ -128,7 +128,7 @@ public class WavFileParser {
                 System.out.println("Unsupported channel amount! (too many)");
                 return false;
             }
-            instance.loaded = 0;
+            instance.queueManager.currentTrack.loaded = 0;
             byte[] pcmData = inputStream.readNBytes(subChunk2Size);
             if(pcmData.length != subChunk2Size) {
                 System.out.println("Incorrect length metadata!");
@@ -184,8 +184,8 @@ public class WavFileParser {
                     }
                 }
             }
-            instance.song = parsedData;
-            instance.loaded = parsedData.length;
+            instance.queueManager.currentTrack.pcmData = parsedData;
+            instance.queueManager.currentTrack.loaded = parsedData.length;
         }
         return true;
     }

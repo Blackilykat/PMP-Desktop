@@ -33,8 +33,11 @@ public class Icons {
     public static final String PAUSE = "pause.svg";
     public static final String FORWARD = "forward.svg";
     public static final String BACKWARD = "backward.svg";
-    public static final String REPEAT = "repeat.svg";
-    public static final String SHUFFLE = "shuffle.svg";
+    public static final String REPEAT_ALL = "repeat.svg";
+    public static final String REPEAT_ONE = "repeat-once.svg";
+    public static final String REPEAT_OFF = "repeat-off.svg";
+    public static final String SHUFFLE_ON = "shuffle.svg";
+    public static final String SHUFFLE_OFF = "shuffle-disabled.svg";
     public static final String MENU = "menu.svg";
 
     public static Icon svgIcon(String name, int width, int height) {
