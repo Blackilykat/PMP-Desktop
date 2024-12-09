@@ -33,14 +33,14 @@ public class TrackQueueManager {
     private final Library library;
     private Random random = new Random();
 
-    private Stack<Library.Track> previousTracks = new Stack<>();
-    public Library.Track currentTrack = null;
+    private Stack<Track> previousTracks = new Stack<>();
+    public Track currentTrack = null;
 
     //TODO forced queue where user can add a track to a queue and it will take priority over the normal next tracks
 
     // this is a stack because if the user goes to a previous track they should be able to get back. normally it would
     // only have 1 element
-    private Stack<Library.Track> nextTracks = new Stack<>();
+    private Stack<Track> nextTracks = new Stack<>();
 
     private ShuffleOption shuffle = ShuffleOption.OFF;
     private RepeatOption repeat = RepeatOption.OFF;
@@ -56,7 +56,7 @@ public class TrackQueueManager {
             previousTracks.push(currentTrack);
         }
         currentTrack = nextTracks.isEmpty() ? pickNext() : nextTracks.pop();
-        Library.Track next = pickNext();
+        Track next = pickNext();
         if(nextTracks.isEmpty() && next != null) {
             nextTracks.push(next);
         }
@@ -70,7 +70,7 @@ public class TrackQueueManager {
         currentTrack = previousTracks.pop();
     }
 
-    public void setCurrentTrack(Library.Track track) {
+    public void setCurrentTrack(Track track) {
         if(currentTrack != null) {
             previousTracks.push(currentTrack);
         }
@@ -113,7 +113,7 @@ public class TrackQueueManager {
         return repeat;
     }
 
-    private Library.Track pickNext() {
+    private Track pickNext() {
         System.out.println("Filtered tracks size: " + library.filteredTracks.size());
         System.out.println("First filtered track: " + library.filteredTracks.getFirst());
         System.out.println("Last filtered track: " + library.filteredTracks.getLast());

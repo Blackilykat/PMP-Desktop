@@ -21,6 +21,7 @@
 package dev.blackilykat.widgets.filters;
 
 import dev.blackilykat.Library;
+import dev.blackilykat.Track;
 import dev.blackilykat.util.Pair;
 
 import java.io.Serializable;
@@ -48,7 +49,7 @@ public class LibraryFilter implements Serializable {
     /**
      * A list containing all the tracks that match this filter.
      */
-    public Set<Library.Track> matchingTracks = new HashSet<>();
+    public Set<Track> matchingTracks = new HashSet<>();
     /**
      * All options the user can select.
      */
@@ -89,7 +90,7 @@ public class LibraryFilter implements Serializable {
             for(LibraryFilterOption option : getOptions()) {
                 if(option.state != LibraryFilterOption.State.POSITIVE) continue;
 
-                for(Library.Track track : library.filteredTracks) {
+                for(Track track : library.filteredTracks) {
                     boolean hasKey = false;
                     System.out.println("Filtering for track " + track.title);
                     for(Pair<String, String> pair : track.metadata) {
@@ -115,7 +116,7 @@ public class LibraryFilter implements Serializable {
         for(LibraryFilterOption option : getOptions()) {
             if(option.state != LibraryFilterOption.State.NEGATIVE) continue;
 
-            for(Library.Track track : library.filteredTracks) {
+            for(Track track : library.filteredTracks) {
                 boolean hasKey = false;
 
                 for(Pair<String, String> pair : track.metadata) {
@@ -142,7 +143,7 @@ public class LibraryFilter implements Serializable {
         everything.state = LibraryFilterOption.State.POSITIVE;
         options.add(everything);
 
-        for(Library.Track track : library.tracks) {
+        for(Track track : library.tracks) {
             boolean hasKey = false;
 
             for(Pair<String, String> pair : track.metadata) {

@@ -18,12 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package dev.blackilykat.widgets;
+package dev.blackilykat.widgets.tracklist;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
+import dev.blackilykat.widgets.ScrollablePanel;
+import dev.blackilykat.widgets.Widget;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
@@ -32,18 +34,24 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SpringLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SongListWidget extends Widget {
     public final Audio audio;
     public JPanel scrollPaneContents = new ScrollablePanel();
     private JScrollPane scrollPane = new JScrollPane(scrollPaneContents);
+    private JPanel headerPanel = new JPanel();
     public static JPopupMenu popup = new JPopupMenu();
+    public List<TrackDataHeader<?>> dataHeaders = new ArrayList<>();
 
     static {
         popup.add(getAddTrackPopupItem());
@@ -53,10 +61,25 @@ public class SongListWidget extends Widget {
         super();
         this.audio = audio;
 
+        // TEMPORARY ///////////////////////////
+
+        dataHeaders.add(new TrackDataHeader<>("N°", "tracknumber", IntegerTrackDataEntry.class, 50));
+        dataHeaders.add(new TrackDataHeader<>("Title", "title", StringTrackDataEntry.class, 500));
+        dataHeaders.add(new TrackDataHeader<>("Artist", "artist", StringTrackDataEntry.class, 300));
+        dataHeaders.add(new TrackDataHeader<>("Length", "duration", TimeTrackDataEntry.class, 100));
+
+        // TEMPORARY END ///////////////////////
+
+        this.add(headerPanel);
+        layout.putConstraint(SpringLayout.NORTH, headerPanel, 0, SpringLayout.NORTH, this);
+        layout.putConstraint(SpringLayout.SOUTH, headerPanel, 32, SpringLayout.NORTH, this);
+        layout.putConstraint(SpringLayout.EAST, headerPanel, 0, SpringLayout.EAST, this);
+        layout.putConstraint(SpringLayout.WEST, headerPanel, 0, SpringLayout.WEST, this);
+
         scrollPaneContents.setLayout(new BoxLayout(scrollPaneContents, BoxLayout.Y_AXIS));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         this.add(scrollPane);
-        layout.putConstraint(SpringLayout.NORTH, scrollPane, 0, SpringLayout.NORTH, this);
+        layout.putConstraint(SpringLayout.NORTH, scrollPane, 0, SpringLayout.SOUTH, headerPanel);
         layout.putConstraint(SpringLayout.WEST, scrollPane, 0, SpringLayout.WEST, this);
         layout.putConstraint(SpringLayout.SOUTH, scrollPane, 0, SpringLayout.SOUTH, this);
         layout.putConstraint(SpringLayout.EAST, scrollPane, 0, SpringLayout.EAST, this);
@@ -80,6 +103,16 @@ public class SongListWidget extends Widget {
                 }
             }
         });
+        refresh();
+    }
+
+    public void refresh() {
+        headerPanel.removeAll();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+        for(TrackDataHeader<?> dataHeader : dataHeaders) {
+            headerPanel.add(dataHeader.getContainedComponent());
+        }
+
     }
 
     @Override

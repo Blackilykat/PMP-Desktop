@@ -22,7 +22,7 @@ package dev.blackilykat;
 
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
-import dev.blackilykat.widgets.SongListWidget;
+import dev.blackilykat.widgets.tracklist.SongListWidget;
 import dev.blackilykat.widgets.SongPathWidget;
 
 import javax.swing.JFrame;

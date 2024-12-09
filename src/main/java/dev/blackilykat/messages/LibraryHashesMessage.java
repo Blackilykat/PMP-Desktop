@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import dev.blackilykat.Json;
 import dev.blackilykat.Library;
 import dev.blackilykat.ServerConnection;
+import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 
 import java.util.HashMap;
@@ -79,7 +80,7 @@ public class LibraryHashesMessage extends Message {
         for(Map.Entry<String, Long> entry : hashes.entrySet()) {
             boolean found = false;
             boolean matches = false;
-            for(Library.Track track : Library.INSTANCE.tracks) {
+            for(Track track : Library.INSTANCE.tracks) {
                 if(track.getFile().getName().equals(entry.getKey())) {
                     found = true;
                     if(track.checksum == entry.getValue()) {
@@ -98,7 +99,7 @@ public class LibraryHashesMessage extends Message {
             }
         }
         // already checked checksums, now check for missing only
-        for(Library.Track track : Library.INSTANCE.tracks) {
+        for(Track track : Library.INSTANCE.tracks) {
             String name = track.getFile().getName();
             if(!hashes.containsKey(name)) {
                 System.out.println("Server doesn't have " + name);

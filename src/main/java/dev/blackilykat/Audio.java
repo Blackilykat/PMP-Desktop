@@ -112,7 +112,9 @@ public class Audio {
                 reloadSong();
                 PlayBarWidget.timeBar.setMinimum(0);
                 PlayBarWidget.timeBar.setMaximum(queueManager.currentTrack.pcmData.length);
-            } catch (InvalidPathException | IOException ignored) {}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
 
     }

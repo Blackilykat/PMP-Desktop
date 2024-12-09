@@ -20,35 +20,18 @@
 
 package dev.blackilykat;
 
-import dev.blackilykat.messages.LibraryActionMessage;
-import dev.blackilykat.util.Icons;
-import dev.blackilykat.util.Pair;
-import dev.blackilykat.widgets.SongListWidget;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterPanel;
+import dev.blackilykat.widgets.tracklist.TrackPanel;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.metadata.Metadata;
 import org.kc7bfi.jflac.metadata.VorbisComment;
-import org.kc7bfi.jflac.metadata.VorbisString;
 
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
@@ -67,7 +50,7 @@ public class Library {
         return -1;
     }
 
-    public Library.Track getItem(int index) {
+    public Track getItem(int index) {
         try {
             return tracks.get(index);
         } catch (IndexOutOfBoundsException e) {
@@ -80,7 +63,7 @@ public class Library {
         tracks = new ArrayList<>();
         for(File result : search(Storage.LIBRARY)) {
             if(Audio.isSupported(result)) {
-                Library.Track track = new Library.Track(result, Main.songListWidget);
+                Track track = new Track(result);
                 tracks.add(track);
 
                 try {
@@ -132,148 +115,11 @@ public class Library {
         }
 
         Main.songListWidget.scrollPaneContents.removeAll();
-        for(Library.Track element : Library.INSTANCE.filteredTracks) {
-            Main.songListWidget.scrollPaneContents.add(element);
+        for(Track element : Library.INSTANCE.filteredTracks) {
+            Main.songListWidget.scrollPaneContents.add(new TrackPanel(element, Main.songListWidget));
         }
         Main.songListWidget.revalidate();
         Main.songListWidget.repaint();
-    }
-
-    //TODO move panel to a different class so this is more general
-    public static class Track extends JPanel {
-        public String title;
-        private File file;
-        public final SongListWidget list;
-        private JButton button;
-        public JLabel label;
-        public JPopupMenu popup;
-        public List<Pair<String, String>> metadata = new ArrayList<>();
-        /**
-         * CRC32 checksum of the track
-         */
-        public long checksum = -1;
-        /**
-         * The pcm audio data for this track. Should only be anything other than null when it's either being played or
-         * about to.
-         */
-        public byte[] pcmData = null;
-        /**
-         * How many bytes of {@link #pcmData} are loaded.
-         */
-        public int loaded = 0;
-
-        public Track(File path, SongListWidget list) {
-            this.file = path;
-            this.list = list;
-            if(path.getName().endsWith(".flac")) {
-                try {
-                    FLACDecoder decoder = new FLACDecoder(new FileInputStream(file));
-                    Metadata[] metadataList = decoder.readMetadata();
-                    for(Metadata metadataItem : metadataList) {
-                        if(!(metadataItem instanceof VorbisComment commentMetadata)) continue;
-                        String title = "";
-                        ArrayList<String> artists = new ArrayList<>();
-                        for(VorbisString comment : commentMetadata.getComments()) {
-                            String[] parts = comment.toString().split("=");
-                            // metadata can have = symbol, the key can't. only the first = splits key and value.
-                            Pair<String, String> pair = new Pair<>(parts[0], Arrays.stream(parts).skip(1).collect(Collectors.joining("=")));
-                            metadata.add(pair);
-                            if(pair.key.equals("title")) {
-                                title = pair.value;
-                            } else if (pair.key.equals("artist")) {
-                                artists.add(pair.value);
-                            }
-                        }
-                        if(title.isEmpty()) {
-                            this.title = path.getName();
-                        } else {
-                            this.title = title
-                                    + (artists.isEmpty() ? "" : " - ")
-                                    + artists.stream().collect(Collectors.joining(", "));
-                        }
-                    }
-                } catch (IOException ignored) {}
-            } else {
-                this.title = path.getName();
-            }
-
-            this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-            this.setAlignmentX(0);
-
-            this.button = new JButton(Icons.svgIcon(Icons.PLAY, 16, 16));
-            this.button.addActionListener(new PlayButtonListener(this));
-            this.add(this.button);
-            this.label = new JLabel(title);
-            this.add(label);
-
-            this.popup = new JPopupMenu();
-            JMenuItem deleteItem = new JMenuItem("Delete");
-            this.popup.add(deleteItem);
-            this.popup.add(SongListWidget.getAddTrackPopupItem());
-            deleteItem.addMouseListener(new MouseAdapter() {
-                /*
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    run();
-                }
-                 */
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    run();
-                }
-
-                private void run() {
-                    System.out.println("Deleting track " + getFile().getName());
-                    getFile().delete();
-                    LibraryActionMessage libraryActionMessage = LibraryActionMessage.create(LibraryActionMessage.Type.REMOVE, getFile().getName());
-                    ServerConnection.INSTANCE.send(libraryActionMessage);
-                    System.out.println("Deleted track " + getFile().getName());
-                    Library.INSTANCE.reload();
-                }
-            });
-
-            this.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    maybeShowPopup(e);
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    maybeShowPopup(e);
-                }
-
-                private void maybeShowPopup(MouseEvent e) {
-                    if(e.isPopupTrigger()) {
-                        Track.this.popup.show(Track.this, e.getX(), e.getY());
-                    }
-                }
-            });
-        }
-
-        public File getFile() {
-            return this.file;
-        }
-
-        @Override
-        public Dimension getPreferredSize() {
-            return new Dimension(this.getParent().getWidth(), this.getMinimumSize().height);
-        }
-
-        private static class PlayButtonListener implements ActionListener {
-            public final Track track;
-
-            public PlayButtonListener(Track song) {
-                this.track = song;
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                track.list.audio.queueManager.setCurrentTrack(track);
-                track.list.audio.startPlaying(track.getFile().getPath());
-            }
-        }
     }
 
     //TODO before alpha: support foreign characters
