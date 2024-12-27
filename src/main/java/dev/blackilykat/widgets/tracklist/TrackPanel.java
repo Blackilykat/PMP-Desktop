@@ -138,7 +138,7 @@ public class TrackPanel extends JPanel {
     public void reloadDataEntries() {
         dataEntries.clear();
         this.removeAll();
-        for(TrackDataHeader<?> dataHeader : list.dataHeaders) {
+        for(TrackDataHeader dataHeader : list.dataHeaders) {
             TrackDataEntry<?> entry = TrackDataEntry.create(track, dataHeader);
             dataEntries.add(entry);
             if(entry != null) {

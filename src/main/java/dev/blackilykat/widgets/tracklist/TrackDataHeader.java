@@ -26,14 +26,14 @@ import javax.swing.JPanel;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 
-public class TrackDataHeader<T extends TrackDataEntry<T>> {
+public class TrackDataHeader {
     public final String name;
     public final String metadataKey;
-    public final Class<T> clazz;
+    public final Class<? extends TrackDataEntry<?>> clazz;
     public int width;
     private JPanel containedComponent = null;
 
-    public TrackDataHeader(String name, String metadataKey, Class<T> clazz, int width) {
+    public TrackDataHeader(String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width) {
         this.name = name;
         this.metadataKey = metadataKey;
         this.clazz = clazz;

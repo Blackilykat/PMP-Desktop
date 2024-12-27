@@ -30,10 +30,10 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 
 public class TrackDataEntryWidget extends JPanel {
-    private TrackDataHeader<?> dataHeader;
+    private TrackDataHeader dataHeader;
     private TrackPanel panel;
 
-    public TrackDataEntryWidget(TrackDataEntry<?> entry, TrackDataHeader<?> dataHeader, TrackPanel panel) {
+    public TrackDataEntryWidget(TrackDataEntry<?> entry, TrackDataHeader dataHeader, TrackPanel panel) {
         this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 
         this.dataHeader = dataHeader;

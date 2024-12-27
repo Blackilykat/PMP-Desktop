@@ -50,7 +50,7 @@ public record StringTrackDataEntry(String data) implements TrackDataEntry<String
         return Alignment.LEFT;
     }
 
-    public static StringTrackDataEntry create(Track track, TrackDataHeader<StringTrackDataEntry> header) {
+    public static StringTrackDataEntry create(Track track, TrackDataHeader header) {
         StringBuilder builder = new StringBuilder();
         for(Pair<String, String> metadatum : track.metadata) {
             if(metadatum.key.equals(header.metadataKey)) {

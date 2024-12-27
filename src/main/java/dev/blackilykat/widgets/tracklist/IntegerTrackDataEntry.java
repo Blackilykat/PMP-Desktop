@@ -54,7 +54,7 @@ public record IntegerTrackDataEntry(Integer data) implements TrackDataEntry<Inte
         return Alignment.RIGHT;
     }
 
-    public static IntegerTrackDataEntry create(Track track, TrackDataHeader<IntegerTrackDataEntry> header) {
+    public static IntegerTrackDataEntry create(Track track, TrackDataHeader header) {
         for(Pair<String, String> metadatum : track.metadata) {
             if(metadatum.key.equals(header.metadataKey)) {
                 return new IntegerTrackDataEntry(Integer.valueOf(metadatum.value));

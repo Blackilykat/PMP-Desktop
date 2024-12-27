@@ -30,13 +30,13 @@ import dev.blackilykat.widgets.Widget;
 import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.SpringLayout;
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -50,11 +50,12 @@ public class SongListWidget extends Widget {
     public JPanel scrollPaneContents = new ScrollablePanel();
     private JScrollPane scrollPane = new JScrollPane(scrollPaneContents);
     private JPanel headerPanel = new JPanel();
-    public static JPopupMenu popup = new JPopupMenu();
-    public List<TrackDataHeader<?>> dataHeaders = new ArrayList<>();
+    public static JPopupMenu trackListPopupMenu = new JPopupMenu();
+    public JPopupMenu headerPopupMenu = new JPopupMenu();
+    public List<TrackDataHeader> dataHeaders = new ArrayList<>();
 
     static {
-        popup.add(getAddTrackPopupItem());
+        trackListPopupMenu.add(getAddTrackPopupItem());
     }
 
     public SongListWidget(Audio audio) {
@@ -63,10 +64,10 @@ public class SongListWidget extends Widget {
 
         // TEMPORARY ///////////////////////////
 
-        dataHeaders.add(new TrackDataHeader<>("N°", "tracknumber", IntegerTrackDataEntry.class, 50));
-        dataHeaders.add(new TrackDataHeader<>("Title", "title", StringTrackDataEntry.class, 500));
-        dataHeaders.add(new TrackDataHeader<>("Artist", "artist", StringTrackDataEntry.class, 300));
-        dataHeaders.add(new TrackDataHeader<>("Length", "duration", TimeTrackDataEntry.class, 100));
+        dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50));
+        dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500));
+        dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300));
+        dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100));
 
         // TEMPORARY END ///////////////////////
 
@@ -99,17 +100,37 @@ public class SongListWidget extends Widget {
 
             private void maybeShowPopup(MouseEvent e) {
                 if(e.isPopupTrigger()) {
-                    popup.show(SongListWidget.this, e.getX(), e.getY());
+                    trackListPopupMenu.show(SongListWidget.this, e.getX(), e.getY());
+                }
+            }
+        });
+
+        headerPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+
+            private void maybeShowPopup(MouseEvent e) {
+                if(e.isPopupTrigger()) {
+                    headerPopupMenu.show(SongListWidget.this, e.getX(), e.getY());
                 }
             }
         });
         refresh();
+
+        headerPopupMenu.add(getAddHeaderPopupItem());
     }
 
     public void refresh() {
         headerPanel.removeAll();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        for(TrackDataHeader<?> dataHeader : dataHeaders) {
+        for(TrackDataHeader dataHeader : dataHeaders) {
             headerPanel.add(dataHeader.getContainedComponent());
         }
 
@@ -151,6 +172,42 @@ public class SongListWidget extends Widget {
                     ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
                     System.out.println("[DEBUG] sent track to server, done");
                 } catch(IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        return item;
+    }
+
+    public JMenuItem getAddHeaderPopupItem() {
+        JMenuItem item = new JMenuItem("Add header");
+        item.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                run();
+            }
+
+            private void run() {
+                try {
+                    // ask for label (string) and key (string)
+                    JTextField labelField = new JTextField(15);
+                    JTextField keyField = new JTextField(15);
+                    int r = JOptionPane.showConfirmDialog(null,
+                            new Object[]{"Label: ", labelField, "Key: ", keyField},
+                            "New header",
+                            JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.PLAIN_MESSAGE);
+
+                    if(r != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+
+                    dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50));
+                    SongListWidget.this.refresh();
+                    // kinda op.... but you won't be adding and removing headers often so it's probably fine if it's a little slow
+                    Library.INSTANCE.reload();
+                } catch(Throwable e) {
                     e.printStackTrace();
                 }
             }

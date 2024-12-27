@@ -20,7 +20,9 @@
 
 package dev.blackilykat.widgets.tracklist;
 
+import dev.blackilykat.Library;
 import dev.blackilykat.Track;
+import dev.blackilykat.util.Pair;
 
 import javax.swing.JComponent;
 
@@ -49,16 +51,37 @@ public interface TrackDataEntry<T extends TrackDataEntry<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    public static TrackDataEntry<? extends TrackDataEntry<?>> create(Track track, TrackDataHeader<? extends TrackDataEntry<?>> header) {
+    static TrackDataEntry<? extends TrackDataEntry<?>> create(Track track, TrackDataHeader header) {
         if(header.clazz == IntegerTrackDataEntry.class) {
-            return IntegerTrackDataEntry.create(track, (TrackDataHeader<IntegerTrackDataEntry>) header);
+            return IntegerTrackDataEntry.create(track, header);
         }
         if(header.clazz == StringTrackDataEntry.class) {
-            return StringTrackDataEntry.create(track, (TrackDataHeader<StringTrackDataEntry>) header);
+            return StringTrackDataEntry.create(track, header);
         }
         if(header.clazz == TimeTrackDataEntry.class) {
-            return TimeTrackDataEntry.create(track, (TrackDataHeader<TimeTrackDataEntry>) header);
+            return TimeTrackDataEntry.create(track, header);
         }
         return null;
+    }
+
+    static Class<? extends TrackDataEntry<?>> getEntryType(String key, Library library) {
+        if(key.equals("duration")) return TimeTrackDataEntry.class;
+
+        boolean withKey = false, numbersOnly = true;
+        mainLoop: for(Track track : library.tracks) {
+            for(Pair<String, String> metadatum : track.metadata) {
+                if(!metadatum.key.equals(key)) continue;
+                withKey = true;
+                for(int i = 0; i < metadatum.value.length(); i++) {
+                    char c = metadatum.value.charAt(i);
+                    if(c < '0' || c > '9') {
+                        numbersOnly = false;
+                        break mainLoop;
+                    }
+                }
+            }
+        }
+        if(!withKey || !numbersOnly) return StringTrackDataEntry.class;
+        return IntegerTrackDataEntry.class;
     }
 }

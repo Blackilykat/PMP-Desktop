@@ -57,7 +57,7 @@ public record TimeTrackDataEntry(Integer data) implements TrackDataEntry<TimeTra
     }
 
 
-    public static TimeTrackDataEntry create(Track track, TrackDataHeader<TimeTrackDataEntry> header) {
+    public static TimeTrackDataEntry create(Track track, TrackDataHeader header) {
         if(header.metadataKey.equals("duration")) {
             return new TimeTrackDataEntry(track.durationSeconds);
         }
