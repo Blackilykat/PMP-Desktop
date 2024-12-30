@@ -55,7 +55,7 @@ public class SongListWidget extends Widget {
     public static JPopupMenu trackListPopupMenu = new JPopupMenu();
     public JPopupMenu headerPopupMenu = new JPopupMenu();
     public List<TrackDataHeader> dataHeaders = new ArrayList<>();
-    // -1: don't show, other: x coordinate of the dotted line that will display upon resizing
+    // -1: don't show, other: x coordinate of the line that will display while resizing
     public int dragResizeLine = -1;
     public TrackDataHeader draggedHeader = null;
 
@@ -67,14 +67,11 @@ public class SongListWidget extends Widget {
         super();
         this.audio = audio;
 
-        // TEMPORARY ///////////////////////////
-
+        // default
         dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
         dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500, this));
         dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300, this));
         dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
-
-        // TEMPORARY END ///////////////////////
 
         this.add(headerPanel);
         layout.putConstraint(SpringLayout.NORTH, headerPanel, 0, SpringLayout.NORTH, this);
