@@ -38,7 +38,7 @@ public class TrackDataEntryWidget extends JPanel {
 
         this.dataHeader = dataHeader;
         this.panel = panel;
-        this.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        this.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
         setMinimumSize(getPreferredSize());
         setPreferredSize(getPreferredSize());

@@ -20,33 +20,52 @@
 
 package dev.blackilykat.widgets.tracklist;
 
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Arrays;
 
 public class TrackDataHeader {
     public final String name;
     public final String metadataKey;
     public final Class<? extends TrackDataEntry<?>> clazz;
     public int width;
-    private JPanel containedComponent = null;
+    public JPanel containedComponent = null;
+    private JLabel component = null;
+    public SongListWidget songListWidget;
+    private TrackDataEntry.Alignment alignment = null;
 
-    public TrackDataHeader(String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width) {
+    public TrackDataHeader(String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width, SongListWidget songListWidget) {
         this.name = name;
         this.metadataKey = metadataKey;
         this.clazz = clazz;
         this.width = width;
+        this.songListWidget = songListWidget;
     }
 
     public JComponent getComponent() {
-        return new JLabel(name);
+        if(component != null) return component;
+        component = new JLabel(name);
+        component.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        return component;
     }
 
     public JPanel getContainedComponent() {
         if(containedComponent == null) {
             containedComponent = new JPanel();
+            containedComponent.setLayout(new BoxLayout(containedComponent, BoxLayout.X_AXIS));
+            containedComponent.add(getComponent());
         }
 
         Dimension size = new Dimension(width, 32);
@@ -54,23 +73,91 @@ public class TrackDataHeader {
         containedComponent.setPreferredSize(size);
         containedComponent.setMaximumSize(size);
 
-        containedComponent.removeAll();
-        containedComponent.add(getComponent());
+        MouseAdapter listener = new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                System.out.println("CHILDREN: " + Arrays.toString(containedComponent.getComponents()));
+                if(songListWidget.draggedHeader == null) return;
+                songListWidget.draggedHeader.width = Math.max(e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
+
+                songListWidget.draggedHeader = null;
+                songListWidget.dragResizeLine = -1;
+                songListWidget.repaint();
+                songListWidget.refresh();
+                songListWidget.revalidate();
+                songListWidget.scrollPaneContents.revalidate();
+                for(Component child : songListWidget.scrollPaneContents.getComponents()) {
+                    if(!(child instanceof TrackPanel trackPanel)) continue;
+                    for(Component grandchild : trackPanel.getComponents()) {
+                        grandchild.revalidate();
+                    }
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(songListWidget.draggedHeader == null) return;
+                System.out.println(containedComponent.getX() + ", " + e.getX());
+
+                int actualX = e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX();
+                int oldPos = songListWidget.dragResizeLine;
+                if(actualX < 20) {
+                    // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
+                    songListWidget.dragResizeLine = songListWidget.draggedHeader.containedComponent.getX() + 20;
+                } else {
+                    songListWidget.dragResizeLine = containedComponent.getX() + e.getX();
+                }
+                // repainting everything uses an unreasonable amount of gpu
+                songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
+                songListWidget.repaint(songListWidget.dragResizeLine, 0, 1, songListWidget.getHeight());
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if(e.getX() < 20) {
+                    int index = songListWidget.dataHeaders.indexOf(TrackDataHeader.this) - 1;
+                    if(index >= 0) {
+                        songListWidget.draggedHeader = songListWidget.dataHeaders.get(index);
+                    } else {
+                        songListWidget.draggedHeader = null;
+                    }
+                } else if(e.getX() > width - 20) {
+                    songListWidget.draggedHeader = TrackDataHeader.this;
+                }
+            }
+        };
+
+        containedComponent.addMouseListener(listener);
+        containedComponent.addMouseMotionListener(listener);
 
         return containedComponent;
     }
 
     //TODO this is a mess, please clean it up with #8
     public void setAlignment(TrackDataEntry.Alignment alignment) {
+        this.alignment = alignment;
+        containedComponent.removeAll();
         switch(alignment) {
-            case LEFT -> containedComponent.setLayout(new FlowLayout(FlowLayout.LEFT));
-            case CENTER -> containedComponent.setLayout(new FlowLayout(FlowLayout.CENTER));
-            case RIGHT -> containedComponent.setLayout(new FlowLayout(FlowLayout.RIGHT));
+            case LEFT -> {
+                containedComponent.add(component);
+                containedComponent.add(Box.createHorizontalGlue());
+            }
+            case CENTER -> {
+                containedComponent.add(component);
+            }
+            case RIGHT -> {
+                containedComponent.add(Box.createHorizontalGlue());
+                containedComponent.add(component);
+            }
         }
         Dimension size = new Dimension(width, 32);
         containedComponent.setMinimumSize(size);
         containedComponent.setPreferredSize(size);
         containedComponent.setMaximumSize(size);
+    }
+
+    public TrackDataEntry.Alignment getAlignment() {
+        return this.alignment;
     }
 
 }

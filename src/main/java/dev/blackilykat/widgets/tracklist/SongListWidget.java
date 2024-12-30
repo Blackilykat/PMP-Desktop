@@ -36,7 +36,9 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -48,11 +50,14 @@ import java.util.List;
 public class SongListWidget extends Widget {
     public final Audio audio;
     public JPanel scrollPaneContents = new ScrollablePanel();
-    private JScrollPane scrollPane = new JScrollPane(scrollPaneContents);
-    private JPanel headerPanel = new JPanel();
+    public JScrollPane scrollPane = new JScrollPane(scrollPaneContents);
+    public TrackDataHeaderContainer headerPanel = new TrackDataHeaderContainer(this);
     public static JPopupMenu trackListPopupMenu = new JPopupMenu();
     public JPopupMenu headerPopupMenu = new JPopupMenu();
     public List<TrackDataHeader> dataHeaders = new ArrayList<>();
+    // -1: don't show, other: x coordinate of the dotted line that will display upon resizing
+    public int dragResizeLine = -1;
+    public TrackDataHeader draggedHeader = null;
 
     static {
         trackListPopupMenu.add(getAddTrackPopupItem());
@@ -64,10 +69,10 @@ public class SongListWidget extends Widget {
 
         // TEMPORARY ///////////////////////////
 
-        dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50));
-        dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500));
-        dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300));
-        dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100));
+        dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
+        dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500, this));
+        dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300, this));
+        dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
 
         // TEMPORARY END ///////////////////////
 
@@ -203,7 +208,7 @@ public class SongListWidget extends Widget {
                         return;
                     }
 
-                    dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50));
+                    dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50, SongListWidget.this));
                     SongListWidget.this.refresh();
                     // kinda op.... but you won't be adding and removing headers often so it's probably fine if it's a little slow
                     Library.INSTANCE.reload();
@@ -213,5 +218,16 @@ public class SongListWidget extends Widget {
             }
         });
         return item;
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+
+        if(dragResizeLine > -1) {
+            System.out.println("Painting at " + dragResizeLine);
+            g.setColor(Color.BLACK);
+            g.fillRect(dragResizeLine, 0, 1, this.getHeight() - 2);
+        }
     }
 }
