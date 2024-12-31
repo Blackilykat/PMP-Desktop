@@ -53,7 +53,7 @@ public record StringTrackDataEntry(String data) implements TrackDataEntry<String
     public static StringTrackDataEntry create(Track track, TrackDataHeader header) {
         StringBuilder builder = new StringBuilder();
         for(Pair<String, String> metadatum : track.metadata) {
-            if(metadatum.key.equals(header.metadataKey)) {
+            if(metadatum.key.equalsIgnoreCase(header.metadataKey)) {
                 if(!builder.isEmpty()) builder.append(", ");
                 builder.append(metadatum.value);
             }

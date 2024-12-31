@@ -77,9 +77,9 @@ public class Track {
                         // metadata can have = symbol, the key can't. only the first = splits key and value.
                         Pair<String, String> pair = new Pair<>(parts[0], Arrays.stream(parts).skip(1).collect(Collectors.joining("=")));
                         metadata.add(pair);
-                        if(pair.key.equals("title")) {
+                        if(pair.key.equalsIgnoreCase("title")) {
                             title = pair.value;
-                        } else if(pair.key.equals("artist")) {
+                        } else if(pair.key.equalsIgnoreCase("artist")) {
                             artists.add(pair.value);
                         }
                     }
