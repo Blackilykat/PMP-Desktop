@@ -142,7 +142,6 @@ public class Library {
         }
     }
 
-    //TODO before alpha: support foreign characters
     /**
      * Returns a new filename for a track. The new filename will be in the follwing format:<br />
      * <code>Title_Album_Artist_Artist_..._Artist.flac</code><br />
@@ -183,18 +182,28 @@ public class Library {
         } catch (IOException ignored) {}
 
         assert title != null;
-        title = title.replaceAll("[^A-Za-z0-9_]", "_");
+        title = withReplacedChars(title);
 
         StringBuilder finalString = new StringBuilder(title);
         if(album != null) {
-            album = album.replaceAll("[^A-Za-z0-9_]", "_");
+            album = withReplacedChars(album);
             finalString.append("_").append(album);
         }
         if(!artists.isEmpty()) {
-            artists = artists.replaceAll("[^A-Za-z0-9_]", "_");
+            artists = withReplacedChars(artists);
             finalString.append("_").append(artists);
         }
         finalString.append(".flac");
         return finalString.toString();
+    }
+
+    private static String withReplacedChars(String s) {
+        char[] chars = s.toCharArray();
+        for(int i = 0; i < chars.length; i++) {
+            if(Character.UnicodeScript.of(chars[i]) != Character.UnicodeScript.COMMON) continue;
+            if(chars[i] >= '0' && chars[i] <= '9') continue;
+            chars[i] = '_';
+        }
+        return new String(chars);
     }
 }
