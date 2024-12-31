@@ -20,17 +20,22 @@
 
 package dev.blackilykat.widgets.tracklist;
 
+import dev.blackilykat.Library;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Arrays;
 
 public class TrackDataHeader {
     public final String name;
@@ -41,6 +46,8 @@ public class TrackDataHeader {
     private JLabel component = null;
     public SongListWidget songListWidget;
     private TrackDataEntry.Alignment alignment = null;
+    private int lastPressedX = -1;
+    private boolean wasPressing = false;
 
     public TrackDataHeader(String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width, SongListWidget songListWidget) {
         this.name = name;
@@ -59,7 +66,7 @@ public class TrackDataHeader {
 
     public JPanel getContainedComponent() {
         if(containedComponent == null) {
-            containedComponent = new JPanel();
+            containedComponent = new Container(this);
             containedComponent.setLayout(new BoxLayout(containedComponent, BoxLayout.X_AXIS));
             containedComponent.add(getComponent());
         }
@@ -72,14 +79,34 @@ public class TrackDataHeader {
         MouseAdapter listener = new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                System.out.println("CHILDREN: " + Arrays.toString(containedComponent.getComponents()));
-                if(songListWidget.draggedHeader == null) return;
+                // for some reason mouseReleased and mousePressed get called multiple times when you drag your mouse.
+                // it makes absolutely no sense for it to do that but this fixes it
+                if(!wasPressing) return;
+                wasPressing = false;
+
+                if(songListWidget.draggedHeader == null) {
+                    if(songListWidget.orderingHeader == null || songListWidget.orderingHeader != TrackDataHeader.this) {
+                        songListWidget.orderingHeader = TrackDataHeader.this;
+                        songListWidget.order = Order.DESCENDING;
+                    } else {
+                        // a lil confusing to read but it just flips it
+                        songListWidget.order = songListWidget.order == Order.DESCENDING ? Order.ASCENDING : Order.DESCENDING;
+                    }
+                    lastPressedX = -1;
+                    // repainting the headers alone clears the lines between them, so you have to redraw the whole thing
+                    // (you could define the specific regions to redraw but i dont feel like doing that)
+                    songListWidget.headerPanel.repaint();
+
+                    Library.INSTANCE.reloadSorting();
+                    songListWidget.refreshTracks();
+                    return;
+                }
                 songListWidget.draggedHeader.width = Math.max(e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
 
                 songListWidget.draggedHeader = null;
                 songListWidget.dragResizeLine = -1;
                 songListWidget.repaint();
-                songListWidget.refresh();
+                songListWidget.refreshHeaders();
                 songListWidget.revalidate();
                 songListWidget.scrollPaneContents.revalidate();
                 for(Component child : songListWidget.scrollPaneContents.getComponents()) {
@@ -93,7 +120,6 @@ public class TrackDataHeader {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if(songListWidget.draggedHeader == null) return;
-                System.out.println(containedComponent.getX() + ", " + e.getX());
 
                 int actualX = e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX();
                 int oldPos = songListWidget.dragResizeLine;
@@ -110,6 +136,9 @@ public class TrackDataHeader {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                if(wasPressing) return;
+                wasPressing = true;
+                lastPressedX = e.getX();
                 if(e.getX() < 20) {
                     int index = songListWidget.dataHeaders.indexOf(TrackDataHeader.this) - 1;
                     if(index >= 0) {
@@ -154,6 +183,47 @@ public class TrackDataHeader {
 
     public TrackDataEntry.Alignment getAlignment() {
         return this.alignment;
+    }
+
+    private static class Container extends JPanel {
+        public final TrackDataHeader parent;
+        public int lastKnownWidth;
+        public int[] arrowCoordinatesX = new int[3];
+        public int[] ascendingArrowCoordinatesY = new int[3];
+        public int[] descendingArrowCoordinatesY = new int[3];
+
+        public Container(TrackDataHeader parent) {
+            this.parent = parent;
+            updateCoordinates();
+        }
+
+        private void updateCoordinates() {
+            lastKnownWidth = parent.width;
+            arrowCoordinatesX[0] = lastKnownWidth / 2;
+            arrowCoordinatesX[1] = arrowCoordinatesX[0] - 5;
+            arrowCoordinatesX[2] = arrowCoordinatesX[0] + 5;
+            ascendingArrowCoordinatesY[0] = 2;
+            ascendingArrowCoordinatesY[1] = ascendingArrowCoordinatesY[2] = 2 + 7;
+            descendingArrowCoordinatesY[0] = 30;
+            descendingArrowCoordinatesY[1] = descendingArrowCoordinatesY[2] = 30 - 7;
+        }
+
+        @Override
+        public void paint(Graphics g) {
+            super.paint(g);
+            if(lastKnownWidth != parent.width) {
+                updateCoordinates();
+            }
+            if(parent.songListWidget.orderingHeader == parent) {
+                ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(Color.GRAY);
+                if(parent.songListWidget.order == Order.ASCENDING) {
+                    g.fillPolygon(arrowCoordinatesX, ascendingArrowCoordinatesY, 3);
+                } else {
+                    g.fillPolygon(arrowCoordinatesX, descendingArrowCoordinatesY, 3);
+                }
+            }
+        }
     }
 
 }

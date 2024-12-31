@@ -59,7 +59,7 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
         songListWidget.draggedHeader = null;
         songListWidget.dragResizeLine = -1;
         songListWidget.repaint();
-        songListWidget.refresh();
+        songListWidget.refreshHeaders();
         songListWidget.revalidate();
         songListWidget.scrollPaneContents.revalidate();
         for(Component child : songListWidget.scrollPaneContents.getComponents()) {

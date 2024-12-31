@@ -22,8 +22,10 @@ package dev.blackilykat.widgets.tracklist;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.Main;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
+import dev.blackilykat.Track;
 import dev.blackilykat.widgets.ScrollablePanel;
 import dev.blackilykat.widgets.Widget;
 
@@ -58,6 +60,9 @@ public class SongListWidget extends Widget {
     // -1: don't show, other: x coordinate of the line that will display while resizing
     public int dragResizeLine = -1;
     public TrackDataHeader draggedHeader = null;
+
+    public TrackDataHeader orderingHeader = null;
+    public Order order = Order.DESCENDING;
 
     static {
         trackListPopupMenu.add(getAddTrackPopupItem());
@@ -124,18 +129,26 @@ public class SongListWidget extends Widget {
                 }
             }
         });
-        refresh();
+        refreshHeaders();
 
         headerPopupMenu.add(getAddHeaderPopupItem());
     }
 
-    public void refresh() {
+    public void refreshHeaders() {
         headerPanel.removeAll();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
         for(TrackDataHeader dataHeader : dataHeaders) {
             headerPanel.add(dataHeader.getContainedComponent());
         }
+    }
 
+    public void refreshTracks() {
+        scrollPaneContents.removeAll();
+        for(Track element : Library.INSTANCE.filteredTracks) {
+            scrollPaneContents.add(new TrackPanel(element, this));
+        }
+        revalidate();
+        repaint();
     }
 
     @Override
@@ -206,7 +219,7 @@ public class SongListWidget extends Widget {
                     }
 
                     dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50, SongListWidget.this));
-                    SongListWidget.this.refresh();
+                    SongListWidget.this.refreshHeaders();
                     // kinda op.... but you won't be adding and removing headers often so it's probably fine if it's a little slow
                     Library.INSTANCE.reload();
                 } catch(Throwable e) {
@@ -222,7 +235,6 @@ public class SongListWidget extends Widget {
         super.paint(g);
 
         if(dragResizeLine > -1) {
-            System.out.println("Painting at " + dragResizeLine);
             g.setColor(Color.BLACK);
             g.fillRect(dragResizeLine, 0, 1, this.getHeight() - 2);
         }

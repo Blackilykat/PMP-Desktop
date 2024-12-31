@@ -22,6 +22,8 @@ package dev.blackilykat;
 
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterPanel;
+import dev.blackilykat.widgets.tracklist.Order;
+import dev.blackilykat.widgets.tracklist.TrackDataEntry;
 import dev.blackilykat.widgets.tracklist.TrackPanel;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.metadata.Metadata;
@@ -32,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
@@ -87,7 +90,9 @@ public class Library {
         }
 
         reloadFilters();
+        reloadSorting();
 
+        Main.songListWidget.refreshTracks();
         Main.libraryFiltersWidget.reloadElements();
     }
 
@@ -114,12 +119,27 @@ public class Library {
             filteredTracks.addAll(filter.matchingTracks);
         }
 
-        Main.songListWidget.scrollPaneContents.removeAll();
-        for(Track element : Library.INSTANCE.filteredTracks) {
-            Main.songListWidget.scrollPaneContents.add(new TrackPanel(element, Main.songListWidget));
+    }
+
+    public void reloadSorting() {
+        if(Main.songListWidget.orderingHeader == null) return;
+        int dataIndex = Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader);
+        final int multiplier = Main.songListWidget.order == Order.DESCENDING ? 1 : -1;
+
+        int i = 0;
+        for(Track track : filteredTracks.stream().sorted((o1, o2) -> {
+            // jank... But if I add <?> it doesn't compile cause it doesn't know if they're the same. And obviously
+            // I don't know the type at compile time. I do however know that they are the same type for sure, so just
+            // avoiding generics here entirely fixes the problem (even though it creates 1 billion warnings i can't get
+            // rid of)
+            TrackDataEntry e1 = o1.panel.dataEntries.get(dataIndex);
+            TrackDataEntry e2 = o2.panel.dataEntries.get(dataIndex);
+            return e1.compare(e2) * multiplier;
+        }).toList()) {
+            // i need it as an arraylist so i just copy over the results
+            System.out.println("Ordering " + track.title);
+            filteredTracks.set(i++, track);
         }
-        Main.songListWidget.revalidate();
-        Main.songListWidget.repaint();
     }
 
     //TODO before alpha: support foreign characters

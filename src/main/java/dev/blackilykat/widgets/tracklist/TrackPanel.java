@@ -59,6 +59,7 @@ public class TrackPanel extends JPanel {
 
     public TrackPanel(Track track, SongListWidget list) {
         this.track = track;
+        track.panel = this;
         this.list = list;
 
         BoxLayout layoutManager = new BoxLayout(this, BoxLayout.X_AXIS);

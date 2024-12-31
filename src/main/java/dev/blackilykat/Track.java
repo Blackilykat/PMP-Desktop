@@ -21,6 +21,7 @@
 package dev.blackilykat;
 
 import dev.blackilykat.util.Pair;
+import dev.blackilykat.widgets.tracklist.TrackPanel;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.metadata.Metadata;
 import org.kc7bfi.jflac.metadata.StreamInfo;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 public class Track {
     public String title;
     private File file;
+    public TrackPanel panel = null;
     public List<Pair<String, String>> metadata = new ArrayList<>();
     /**
      * CRC32 checksum of the track

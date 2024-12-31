@@ -20,6 +20,7 @@
 
 package dev.blackilykat.widgets.filters;
 
+import dev.blackilykat.Main;
 import dev.blackilykat.widgets.ScrollablePanel;
 
 import javax.swing.JButton;
@@ -233,6 +234,8 @@ public class LibraryFilterPanel extends JPanel {
                     repaint();
 
                     option.filter.library.reloadFilters();
+                    option.filter.library.reloadSorting();
+                    Main.songListWidget.refreshTracks();
                 }
             });
         }
