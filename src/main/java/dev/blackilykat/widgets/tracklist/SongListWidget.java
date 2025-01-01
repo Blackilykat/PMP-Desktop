@@ -26,6 +26,7 @@ import dev.blackilykat.Main;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
+import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.ScrollablePanel;
 import dev.blackilykat.widgets.Widget;
 
@@ -72,11 +73,24 @@ public class SongListWidget extends Widget {
         super();
         this.audio = audio;
 
-        // default
-        dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
-        dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500, this));
-        dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300, this));
-        dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
+        List<Triple<String, String, Integer>> storedHeaders = Storage.getTrackHeaders();
+        if(storedHeaders != null) {
+            for(Triple<String, String, Integer> header : storedHeaders) {
+                dataHeaders.add(new TrackDataHeader(header.a, header.b, TrackDataEntry.getEntryType(header.b, Library.INSTANCE), header.c, this));
+            }
+        } else {
+            dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
+            dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500, this));
+            dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300, this));
+            dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
+        }
+
+        int sortingHeaderIndex = Storage.getSortingHeader();
+        if(sortingHeaderIndex >= 0 && sortingHeaderIndex < dataHeaders.size()) {
+            this.orderingHeader = dataHeaders.get(sortingHeaderIndex);
+        }
+
+        this.order = Storage.getSortingOrder();
 
         this.add(headerPanel);
         layout.putConstraint(SpringLayout.NORTH, headerPanel, 0, SpringLayout.NORTH, this);

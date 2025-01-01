@@ -116,9 +116,10 @@ public class Library {
         }
 
         reloadFilters();
-        reloadSorting();
-
         if(Main.songListWidget != null) {
+            //TODO make reloadSorting not depend on the GUI elements so it doesn't have to reload this twice
+            Main.songListWidget.refreshTracks();
+            reloadSorting();
             Main.songListWidget.refreshTracks();
         }
         if(Main.libraryFiltersWidget != null) {
@@ -158,7 +159,6 @@ public class Library {
 
         int i = 0;
         for(Track track : filteredTracks.stream().sorted((o1, o2) -> {
-
             // jank... But if I add <?> it doesn't compile cause it doesn't know if they're the same. And obviously
             // I don't know the type at compile time. I do however know that they are the same type for sure, so just
             // avoiding generics here entirely fixes the problem (even though it creates 1 billion warnings i can't get

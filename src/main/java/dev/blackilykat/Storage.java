@@ -20,15 +20,18 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
+import dev.blackilykat.widgets.tracklist.Order;
+import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @SuppressWarnings("unchecked")
 public class Storage {
@@ -40,17 +43,25 @@ public class Storage {
         MVStore mvStore = MVStore.open("db");
         general = mvStore.openMap("general");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            Map<String, Map<String, LibraryFilterOption.State>> map = new HashMap<>();
+            Map<String, Map<String, LibraryFilterOption.State>> filters = new HashMap<>();
             for(LibraryFilter filter : Library.INSTANCE.filters) {
                 Map<String, LibraryFilterOption.State> options = new HashMap<>();
                 for(LibraryFilterOption option : filter.getOptions()) {
-                    System.out.println("Saving option " + option.value + " with state " + option.state);
                     options.put(option.value, option.state);
                 }
-                map.put(filter.key, options);
+                filters.put(filter.key, options);
             }
-            System.out.println(map);
-            Storage.setFilters(map);
+            Storage.setFilters(filters);
+
+            List<Triple<String, String, Integer>> headers = new ArrayList<>();
+            for(TrackDataHeader header : Main.songListWidget.dataHeaders) {
+                headers.add(new Triple<>(header.name, header.metadataKey, header.width));
+            }
+            Storage.setTrackHeaders(headers);
+
+            Storage.setSortingHeader(Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader));
+            Storage.setSortingOrder(Main.songListWidget.order);
+
             mvStore.close();
         }));
 
@@ -77,5 +88,47 @@ public class Storage {
             return;
         }
         general.put("filters", filters);
+    }
+
+    /**
+     * @return a list of all the track headers. The values in each triple are label, key, width.
+     */
+    public static List<Triple<String, String, Integer>> getTrackHeaders() {
+        return (List<Triple<String, String, Integer>>) general.getOrDefault("trackHeaders", null);
+    }
+
+    public static void setTrackHeaders(List<Triple<String, String, Integer>> trackHeaders) {
+        if(trackHeaders == null) {
+            general.remove("trackHeaders");
+            return;
+        }
+        general.put("trackHeaders", trackHeaders);
+    }
+
+    /**
+     * @return The index of the header that tracks are being sorted by currently. -1 if none.
+     */
+    public static int getSortingHeader() {
+        return (Integer) general.getOrDefault("sortingHeaderIndex", -1);
+    }
+
+    public static void setSortingHeader(int sortingHeader) {
+        if(sortingHeader < 0) {
+            general.remove("sortingHeaderIndex");
+            return;
+        }
+        general.put("sortingHeaderIndex", sortingHeader);
+    }
+
+    public static Order getSortingOrder() {
+        return (Order) general.getOrDefault("sortingOrder", Order.DESCENDING);
+    }
+
+    public static void setSortingOrder(Order order) {
+        if(order == null) {
+            general.remove("sortingOrder");
+            return;
+        }
+        general.put("sortingOrder", order);
     }
 }
