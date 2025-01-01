@@ -23,7 +23,6 @@ package dev.blackilykat;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
-import dev.blackilykat.widgets.SongPathWidget;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -37,7 +36,6 @@ import java.net.InetAddress;
 public class Main {
     public static JFrame mainWindow;
     public static GridBagLayout mainWindowLayout;
-    public static SongPathWidget songPathWidget;
     public static PlayBarWidget playBarWidget;
     public static SongListWidget songListWidget;
     public static LibraryFiltersWidget libraryFiltersWidget;
@@ -55,18 +53,6 @@ public class Main {
             mainWindow.setLayout(mainWindowLayout);
 
             GridBagConstraints constraints = new GridBagConstraints();
-
-            SongPathWidget tempPanel = new SongPathWidget();
-            constraints.gridx = 0;
-            constraints.gridy = 0;
-            constraints.weightx = 1;
-            constraints.weighty = 0;
-            constraints.gridwidth = GridBagConstraints.REMAINDER;
-            constraints.anchor = GridBagConstraints.NORTH;
-            constraints.fill = GridBagConstraints.HORIZONTAL;
-            mainWindow.add(tempPanel, constraints);
-
-            constraints = new GridBagConstraints();
 
             LibraryFiltersWidget libraryFiltersWidget = new LibraryFiltersWidget();
             libraryFiltersWidget.setBackground(new Color(255, 0, 0));
@@ -102,7 +88,6 @@ public class Main {
             mainWindow.add(playBarWidget, constraints);
 
 
-            Main.songPathWidget = tempPanel;
             Main.playBarWidget = playBarWidget;
             Main.songListWidget = songListWidget;
             Main.libraryFiltersWidget = libraryFiltersWidget;
