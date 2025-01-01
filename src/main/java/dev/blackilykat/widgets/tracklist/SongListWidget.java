@@ -45,6 +45,7 @@ import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.io.File;
 import java.util.ArrayList;
@@ -182,30 +183,52 @@ public class SongListWidget extends Widget {
 
             private void run() {
                 try {
-                    System.out.println("[DEBUG] opening chooser");
                     JFileChooser chooser = new JFileChooser();
+                    chooser.setMultiSelectionEnabled(true);
+                    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                     int returnValue = chooser.showOpenDialog(null);
                     if(returnValue != JFileChooser.APPROVE_OPTION) {
                         return;
                     }
-                    System.out.println("[DEBUG] chooser approved");
-                    File originalFile = chooser.getSelectedFile();
-                    System.out.println("[DEBUG] original file: " + originalFile.getAbsoluteFile());
-                    File newFile = new File(Storage.LIBRARY, Library.getNewFileName(originalFile));
-                    System.out.println("[DEBUG] new file: " + newFile.getAbsoluteFile());
-                    Files.copy(originalFile.toPath(), newFile.toPath());
-                    System.out.println("[DEBUG] file copied to new place");
-                    Library.INSTANCE.reload();
-                    System.out.println("[DEBUG] reloaded library");
+                    List<File> files = recurseInDirectories(chooser.getSelectedFiles());
+                    for(File originalFile : files) {
+                        File newFile = new File(Storage.LIBRARY, Library.getNewFileName(originalFile));
+                        try {
+                            Files.copy(originalFile.toPath(), newFile.toPath());
+                        } catch(FileAlreadyExistsException e) {
+                            //TODO prompt user for confirmation, for now it's a good enough guess to not add it since it
+                            //     takes the filename, artist and album to build the filename
+                            continue;
+                        }
 
-                    ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
-                    System.out.println("[DEBUG] sent track to server, done");
+                        //TODO this is NOT a proper fix for #20
+                        if(ServerConnection.INSTANCE != null) {
+                            ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
+                        }
+                    }
+                   Library.INSTANCE.reload();
+
                 } catch(IOException e) {
                     e.printStackTrace();
                 }
             }
         });
         return item;
+    }
+
+    private static List<File> recurseInDirectories(File... files) {
+        if(files == null) return List.of();
+        List<File> result = new ArrayList<>();
+        for(File file : files) {
+            if(file == null) continue;
+            if(!file.exists()) continue;
+            if(!file.isDirectory()) {
+                result.add(file);
+                continue;
+            }
+            result.addAll(recurseInDirectories(file.listFiles()));
+        }
+        return result;
     }
 
     public JMenuItem getAddHeaderPopupItem() {
