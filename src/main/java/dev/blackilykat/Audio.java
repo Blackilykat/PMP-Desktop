@@ -40,7 +40,7 @@ import javax.sound.sampled.SourceDataLine;
 
 public class Audio {
 
-    public static final Audio INSTANCE = new Audio();
+    public static Audio INSTANCE = null;
     boolean canPlay = true;
 
     private Path currentlyPlayingPath = null;

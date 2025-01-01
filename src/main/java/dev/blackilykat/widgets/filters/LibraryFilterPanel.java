@@ -71,7 +71,6 @@ public class LibraryFilterPanel extends JPanel {
         layout.putConstraint(SpringLayout.EAST, optionsScrollContainer, 0, SpringLayout.EAST, this);
         layout.putConstraint(SpringLayout.SOUTH, optionsScrollContainer, 0, SpringLayout.SOUTH, this);
 
-        filter.reloadOptions();
         filter.reloadMatching();
 
         popup = new JPopupMenu();

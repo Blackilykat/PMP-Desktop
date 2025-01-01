@@ -68,6 +68,9 @@ public class LibraryFiltersWidget extends Widget {
                 }
             }
         });
+        for(LibraryFilter filter : Library.INSTANCE.filters) {
+            panels.add(new LibraryFilterPanel(filter, this));
+        }
 
         reloadElements();
     }
@@ -104,7 +107,9 @@ public class LibraryFiltersWidget extends Widget {
             @Override
             public void mouseReleased(MouseEvent e) {
                 String answer = JOptionPane.showInputDialog("Insert the metadata to filter through");
-                LibraryFilterPanel panel = new LibraryFilterPanel(new LibraryFilter(Library.INSTANCE, answer), LibraryFiltersWidget.this);
+                LibraryFilter filter = new LibraryFilter(Library.INSTANCE, answer);
+                Library.INSTANCE.filters.add(filter);
+                LibraryFilterPanel panel = new LibraryFilterPanel(filter, LibraryFiltersWidget.this);
                 panels.add(panel);
                 reloadElements();
                 panel.filter.library.reloadFilters();

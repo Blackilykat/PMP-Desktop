@@ -21,6 +21,7 @@
 package dev.blackilykat;
 
 import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.filters.LibraryFilterPanel;
 import dev.blackilykat.widgets.tracklist.Order;
 import dev.blackilykat.widgets.tracklist.TrackDataEntry;
@@ -33,18 +34,35 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
 public class Library {
-    public static final Library INSTANCE = new Library();
+    public static Library INSTANCE = null;
     public List<Track> tracks = new ArrayList<>();
     public List<Track> filteredTracks = new ArrayList<>();
     public List<LibraryFilter> filters = new ArrayList<>();
     public boolean loaded = false;
 
+    public Library() {
+        this.reload();
+        // shutdown hook for saving is in Storage to avoid race conditions when closing the db
+        Map<String, Map<String, LibraryFilterOption.State>> storedFilters = Storage.getFilters();
+        System.out.println(storedFilters);
+        storedFilters.forEach((key, options) -> {
+            LibraryFilter filter = new LibraryFilter(this, key);
+            filter.reloadOptions();
+            options.forEach((name, state) -> {
+                System.out.println(name + " -> " + state);
+                filter.getOption(name).state = state;
+            });
+            filters.add(filter);
+        });
+    }
 
     public int findIndex(File file) {
         for (int i = 0; i < tracks.size(); i++) {
@@ -85,15 +103,27 @@ public class Library {
             notifyAll();
         }
 
-        for(LibraryFilterPanel panel : Main.libraryFiltersWidget.panels) {
-            panel.filter.reloadOptions();
+        if(Main.libraryFiltersWidget != null) {
+            for(LibraryFilterPanel panel : Main.libraryFiltersWidget.panels) {
+                LibraryFilterOption[] oldOptions = panel.filter.getOptions();
+                panel.filter.reloadOptions();
+                for(LibraryFilterOption oldOption : oldOptions) {
+                    LibraryFilterOption newOption = panel.filter.getOption(oldOption.value);
+                    if(newOption == null) continue;
+                    newOption.state = oldOption.state;
+                }
+            }
         }
 
         reloadFilters();
         reloadSorting();
 
-        Main.songListWidget.refreshTracks();
-        Main.libraryFiltersWidget.reloadElements();
+        if(Main.songListWidget != null) {
+            Main.songListWidget.refreshTracks();
+        }
+        if(Main.libraryFiltersWidget != null) {
+            Main.libraryFiltersWidget.reloadElements();
+        }
     }
 
     private List<File> search(File path) {
@@ -122,12 +152,13 @@ public class Library {
     }
 
     public void reloadSorting() {
-        if(Main.songListWidget.orderingHeader == null) return;
+        if(Main.songListWidget == null || Main.songListWidget.orderingHeader == null) return;
         int dataIndex = Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader);
         final int multiplier = Main.songListWidget.order == Order.DESCENDING ? 1 : -1;
 
         int i = 0;
         for(Track track : filteredTracks.stream().sorted((o1, o2) -> {
+
             // jank... But if I add <?> it doesn't compile cause it doesn't know if they're the same. And obviously
             // I don't know the type at compile time. I do however know that they are the same type for sure, so just
             // avoiding generics here entirely fixes the problem (even though it creates 1 billion warnings i can't get

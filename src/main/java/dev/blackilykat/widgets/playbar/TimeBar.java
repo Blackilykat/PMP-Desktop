@@ -102,7 +102,7 @@ public class TimeBar extends JSlider {
         public void paintTrack(Graphics g) {
             super.paintTrack(g);
             double percent;
-            if(Audio.INSTANCE.queueManager.currentTrack == null) {
+            if(Audio.INSTANCE.queueManager.currentTrack == null || Audio.INSTANCE.queueManager.currentTrack.pcmData == null) {
                 percent = 0;
             } else {
                 percent = ((double) Audio.INSTANCE.getPosition()) / Audio.INSTANCE.queueManager.currentTrack.pcmData.length;

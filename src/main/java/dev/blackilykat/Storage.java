@@ -20,11 +20,17 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+@SuppressWarnings("unchecked")
 public class Storage {
     public static final File LIBRARY = new File("library/");
 
@@ -34,6 +40,17 @@ public class Storage {
         MVStore mvStore = MVStore.open("db");
         general = mvStore.openMap("general");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Map<String, Map<String, LibraryFilterOption.State>> map = new HashMap<>();
+            for(LibraryFilter filter : Library.INSTANCE.filters) {
+                Map<String, LibraryFilterOption.State> options = new HashMap<>();
+                for(LibraryFilterOption option : filter.getOptions()) {
+                    System.out.println("Saving option " + option.value + " with state " + option.state);
+                    options.put(option.value, option.state);
+                }
+                map.put(filter.key, options);
+            }
+            System.out.println(map);
+            Storage.setFilters(map);
             mvStore.close();
         }));
 
@@ -48,5 +65,17 @@ public class Storage {
 
     public static void setCurrentActionID(int newValue) {
         general.put("currentActionID", newValue);
+    }
+
+    public static Map<String, Map<String, LibraryFilterOption.State>> getFilters() {
+        return (Map<String, Map<String, LibraryFilterOption.State>>) general.getOrDefault("filters", Map.of());
+    }
+
+    public static void setFilters(Map<String, Map<String, LibraryFilterOption.State>> filters) {
+        if(filters == null) {
+            general.remove("filters");
+            return;
+        }
+        general.put("filters", filters);
     }
 }

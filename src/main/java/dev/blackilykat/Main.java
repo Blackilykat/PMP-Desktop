@@ -44,6 +44,10 @@ public class Main {
         // enable text antialiasing cause its off by default for some stupid reason
         System.setProperty("awt.useSystemAAFontSettings", "lcd");
 
+        Storage.init();
+        Library.INSTANCE = new Library();
+        Audio.INSTANCE = new Audio();
+
         SwingUtilities.invokeLater(() -> {
             mainWindow = new JFrame("PMP Desktop");
             mainWindow.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -95,7 +99,7 @@ public class Main {
 
             mainWindow.setVisible(true);
         });
-        Storage.init();
+
         synchronized(Library.INSTANCE) {
             try {
                 while(!Library.INSTANCE.loaded) {

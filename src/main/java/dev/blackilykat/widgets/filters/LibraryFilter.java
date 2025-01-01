@@ -28,7 +28,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-public class LibraryFilter implements Serializable {
+public class LibraryFilter {
     /**
      * Used to indicate that the "all" option is selected.
      */
@@ -63,9 +63,6 @@ public class LibraryFilter implements Serializable {
     public LibraryFilter(Library library, String key) {
         this.library = library;
         this.key = key;
-        if(library != null) {
-            library.filters.add(this);
-        }
     }
 
     public LibraryFilterOption[] getOptions() {
