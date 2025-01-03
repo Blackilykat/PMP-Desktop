@@ -28,6 +28,7 @@ import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -130,5 +131,17 @@ public class Storage {
             return;
         }
         general.put("sortingOrder", order);
+    }
+
+    public static Key getServerPublicKey() {
+        return (Key) general.getOrDefault("serverPublicKey", null);
+    }
+
+    public static void setServerPublicKey(Key key) {
+        if(key == null) {
+            general.remove("serverPublicKey");
+            return;
+        }
+        general.put("serverPublicKey", key);
     }
 }

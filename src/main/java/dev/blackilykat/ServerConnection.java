@@ -27,24 +27,34 @@ import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.messages.exceptions.MessageInvalidContentsException;
 import dev.blackilykat.messages.exceptions.MessageMissingContentsException;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.Key;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ServerConnection {
     public static ServerConnection INSTANCE;
-    public Socket socket;
+    public SSLSocket socket;
     public InputStream inputStream;
     public OutputStream outputStream;
     public StringBuffer inputBuffer = new StringBuffer();
@@ -54,9 +64,46 @@ public class ServerConnection {
     public boolean connected = false;
     public MessageSendingThread messageSendingThread = new MessageSendingThread();
     public InputReadingThread inputReadingThread = new InputReadingThread();
+    public Key serverPublicKey = null;
+    public SSLContext sslContext = null;
 
     public ServerConnection(InetAddress address, int port) throws IOException {
-        this.socket = new Socket(address, port);
+        serverPublicKey = Storage.getServerPublicKey();
+
+        try {
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    if(chain.length != 1) throw new CertificateException("Unexpected chain length, should only contain one certificate but contains " + chain.length);
+
+                    //TODO add some way for the user to confirm the public key is correct the first time they connect
+                    /// it's a safe enough assumption for now but you can never be too sure
+                    if(serverPublicKey != null) {
+                        if(!chain[0].getPublicKey().equals(serverPublicKey)) {
+                            throw new CertificateException("Mismatching public keys!");
+                        }
+                    } else {
+                        serverPublicKey = chain[0].getPublicKey();
+                        Storage.setServerPublicKey(serverPublicKey);
+                    }
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    checkClientTrusted(chain, authType);
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+
+            }}, SecureRandom.getInstanceStrong());
+        } catch(NoSuchAlgorithmException | KeyManagementException e) {
+            throw new RuntimeException(e);
+        }
+        this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(address, port);
         this.inputStream = socket.getInputStream();
         this.outputStream = socket.getOutputStream();
     }
@@ -86,8 +133,15 @@ public class ServerConnection {
         try {
             System.out.println("Attempting to download track " + name + "...");
             File destination = new File(Storage.LIBRARY, name);
-            URL url = new URL("http://localhost:5001/" + name);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // HttpsURLConnection hangs with insecure HTTP servers
+            if(supportsInsecureHTTP("localhost", 5001)) {
+                throw new IOException("HTTP server is insecure");
+            }
+            URL url = new URL("https://localhost:5001/" + name);
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setSSLSocketFactory(sslContext.getSocketFactory());
+            connection.setHostnameVerifier((hostname, session) -> true);
             connection.setRequestMethod("GET");
             connection.setDoInput(true);
             InputStream connectionInputStream = connection.getInputStream();
@@ -112,8 +166,14 @@ public class ServerConnection {
         try {
             System.out.println("Attempting to upload track " + name + "...");
             File source = new File(Storage.LIBRARY, name);
-            URL url = new URI("http://localhost:5001/" + name + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            if(supportsInsecureHTTP("localhost", 5001)) {
+                throw new IOException("HTTP server is insecure");
+            }
+            URL url = new URI("https://localhost:5001/" + name + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setSSLSocketFactory(sslContext.getSocketFactory());
+            connection.setHostnameVerifier((hostname, session) -> true);
             connection.setDoOutput(true);
             connection.setRequestMethod(replace ? "PUT" : "POST");
             OutputStream connectionOutputStream = connection.getOutputStream();
@@ -238,5 +298,22 @@ public class ServerConnection {
                 disconnect();
             }
         }
+    }
+
+    /**
+     * @return true if an insecure HTTP connection can be established
+     */
+    public static boolean supportsInsecureHTTP(String host, int port) {
+        try {
+            URL httpUrl = new URL("http://" + host + ":" + port);
+            HttpURLConnection httpConnection = (HttpURLConnection) httpUrl.openConnection();
+            httpConnection.setRequestMethod("GET");
+            httpConnection.connect();
+            httpConnection.getResponseCode(); // should throw here if https
+            httpConnection.disconnect();
+        } catch(IOException e) {
+            return false;
+        }
+        return true;
     }
 }
