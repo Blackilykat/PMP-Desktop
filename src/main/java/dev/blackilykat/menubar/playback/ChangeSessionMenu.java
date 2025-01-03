@@ -23,6 +23,7 @@ package dev.blackilykat.menubar.playback;
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.PlaybackSession;
+import dev.blackilykat.Track;
 import dev.blackilykat.TrackQueueManager;
 
 import javax.swing.JMenu;
@@ -48,15 +49,17 @@ public class ChangeSessionMenu extends JMenu {
         });
     }
     private void addSessionButton(PlaybackSession session) {
-        JMenuItem item = new JMenuItem("Session " + ++counter);
+        int index = ++counter;
+        JMenuItem item = new JMenuItem(getItemText(session, index));
         item.addActionListener(e -> {
+            // avoid changing stuff null WHILE it's processing
             synchronized(Audio.INSTANCE.audioLock) {
-                // avoid changing stuff null WHILE it's processing
-                if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null) {
-                    Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData = null;
+                Track oldTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+                if(oldTrack != null) {
+                    oldTrack.pcmData = null;
                 }
                 Audio.INSTANCE.currentSession = session;
-                Audio.INSTANCE.startPlaying(session.queueManager.currentTrack, false, false);
+                Audio.INSTANCE.startPlaying(session.queueManager.getCurrentTrack(), false, false);
                 Audio.INSTANCE.setPlaying(session.getPlaying());
 
                 // update icons
@@ -65,7 +68,24 @@ public class ChangeSessionMenu extends JMenu {
                 mgr.setRepeat(mgr.getRepeat());
             }
         });
+        session.registerNewTrackListener(s -> {
+            item.setText(getItemText(s, index));
+            // rezise the menu accordingly
+            if(ChangeSessionMenu.this.isPopupMenuVisible()) {
+                ChangeSessionMenu.this.setPopupMenuVisible(false);
+                ChangeSessionMenu.this.setPopupMenuVisible(true);
+            }
+        });
         this.add(item);
+    }
+
+    private static String getItemText(PlaybackSession session, int index) {
+        StringBuilder builder = new StringBuilder("Session ").append(index);
+        Track currentTrack = session.queueManager.getCurrentTrack();
+        if(currentTrack != null) {
+            builder.append(": ").append(currentTrack.title);
+        }
+        return builder.toString();
     }
 
 }

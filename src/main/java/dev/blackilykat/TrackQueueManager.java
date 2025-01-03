@@ -31,10 +31,11 @@ import java.util.Stack;
  */
 public class TrackQueueManager {
     private final Library library;
+    private final PlaybackSession session;
     private Random random = new Random();
 
     private Stack<Track> previousTracks = new Stack<>();
-    public Track currentTrack = null;
+    private Track currentTrack = null;
 
     //TODO forced queue where user can add a track to a queue and it will take priority over the normal next tracks
 
@@ -46,8 +47,9 @@ public class TrackQueueManager {
     private RepeatOption repeat = RepeatOption.OFF;
 
 
-    public TrackQueueManager(Library library) {
+    public TrackQueueManager(Library library, PlaybackSession session) {
         this.library = library;
+        this.session = session;
     }
 
     public void nextTrack() {
@@ -60,6 +62,7 @@ public class TrackQueueManager {
         if(nextTracks.isEmpty() && next != null) {
             nextTracks.push(next);
         }
+        session.callNewTrackListeners();
     }
 
     public void previousTrack() {
@@ -68,6 +71,7 @@ public class TrackQueueManager {
             nextTracks.push(currentTrack);
         }
         currentTrack = previousTracks.pop();
+        session.callNewTrackListeners();
     }
 
     public void setCurrentTrack(Track track) {
@@ -76,6 +80,11 @@ public class TrackQueueManager {
         }
         currentTrack = track;
         reloadNext();
+        session.callNewTrackListeners();
+    }
+
+    public Track getCurrentTrack() {
+        return currentTrack;
     }
 
     public void reloadNext() {

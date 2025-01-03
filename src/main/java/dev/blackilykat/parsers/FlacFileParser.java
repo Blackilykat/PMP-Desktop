@@ -21,6 +21,7 @@
 package dev.blackilykat.parsers;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.Track;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.PCMProcessor;
 import org.kc7bfi.jflac.metadata.Metadata;
@@ -47,7 +48,7 @@ public class FlacFileParser implements PCMProcessor {
             FlacFileParser instance = new FlacFileParser(audio);
             decoder.addPCMProcessor(instance);
             instance.metadata = decoder.readMetadata();
-            audio.currentSession.queueManager.currentTrack.loaded = 0;
+            audio.currentSession.queueManager.getCurrentTrack().loaded = 0;
             try {
                 decoder.decodeFrames();
             } catch (EOFException ignored) {}
@@ -60,10 +61,11 @@ public class FlacFileParser implements PCMProcessor {
 
     @Override
     public void processStreamInfo(StreamInfo streamInfo) {
+        Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
         long unprocessedLength = streamInfo.getTotalSamples() * streamInfo.getBitsPerSample() * streamInfo.getChannels() / 8;
-        audio.currentSession.queueManager.currentTrack.pcmData = new byte[((Double)(unprocessedLength * (2.0/streamInfo.getBitsPerSample()*8) * ((double) audio.audioFormat.getChannels()/streamInfo.getChannels()) * (audio.audioFormat.getSampleRate() / streamInfo.getSampleRate()))).intValue()];
-        synchronized(audio.currentSession.queueManager.currentTrack) {
-            audio.currentSession.queueManager.currentTrack.notifyAll();
+        currentTrack.pcmData = new byte[((Double)(unprocessedLength * (2.0/streamInfo.getBitsPerSample()*8) * ((double) audio.audioFormat.getChannels()/streamInfo.getChannels()) * (audio.audioFormat.getSampleRate() / streamInfo.getSampleRate()))).intValue()];
+        synchronized(currentTrack) {
+            currentTrack.notifyAll();
         }
         this.streamInfo = streamInfo;
         System.out.println("Streaminfo: " + streamInfo.toString());
@@ -134,10 +136,11 @@ public class FlacFileParser implements PCMProcessor {
                 }
             }
         }
+        Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
 
-        System.arraycopy(parsedData, 0, audio.currentSession.queueManager.currentTrack.pcmData, bytesProcessed, parsedData.length);
+        System.arraycopy(parsedData, 0, currentTrack.pcmData, bytesProcessed, parsedData.length);
         bytesProcessed += parsedData.length;
-        audio.currentSession.queueManager.currentTrack.loaded = bytesProcessed;
+        currentTrack.loaded = bytesProcessed;
     }
 
     private static short asShort(byte a, byte b, boolean littleEndian) {

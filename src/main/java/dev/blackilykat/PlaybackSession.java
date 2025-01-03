@@ -25,14 +25,15 @@ import java.util.List;
 
 public class PlaybackSession {
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
-    private static final List<SessionRegisterListener> registerListeners = new ArrayList<>();
+    private static final List<SessionListener> registerListeners = new ArrayList<>();
+    private final List<SessionListener> newTrackListeners = new ArrayList<>();
 
     public TrackQueueManager queueManager;
     private boolean playing;
     private int position;
 
     public PlaybackSession(Library library) {
-        this.queueManager = new TrackQueueManager(library);
+        this.queueManager = new TrackQueueManager(library, this);
         playing = false;
         position = 0;
     }
@@ -58,15 +59,23 @@ public class PlaybackSession {
         registerListeners.forEach(l -> l.run(this));
     }
 
+    public void registerNewTrackListener(SessionListener listener) {
+        newTrackListeners.add(listener);
+    }
+
+    public void callNewTrackListeners() {
+        newTrackListeners.forEach(l -> l.run(this));
+    }
+
     public static PlaybackSession[] getAvailableSessions() {
         return availableSessions.toArray(new PlaybackSession[0]);
     }
 
-    public static void registerRegisterListener(SessionRegisterListener listener) {
+    public static void registerRegisterListener(SessionListener listener) {
         registerListeners.add(listener);
     }
 
-    public interface SessionRegisterListener {
+    public interface SessionListener {
         void run(PlaybackSession session);
     }
 }

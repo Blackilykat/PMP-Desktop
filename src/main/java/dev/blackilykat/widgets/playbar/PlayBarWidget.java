@@ -21,6 +21,7 @@
 package dev.blackilykat.widgets.playbar;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.Track;
 import dev.blackilykat.TrackQueueManager;
 import dev.blackilykat.util.Icons;
 import dev.blackilykat.widgets.Widget;
@@ -119,14 +120,16 @@ public class PlayBarWidget extends Widget {
         });
         nextTrackButton.addActionListener(e -> {
             Audio.INSTANCE.currentSession.queueManager.nextTrack();
-            if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null) {
-                Audio.INSTANCE.startPlaying(Audio.INSTANCE.currentSession.queueManager.currentTrack, true, true);
+            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+            if(currentTrack != null) {
+                Audio.INSTANCE.startPlaying(currentTrack, true, true);
             }
         });
         previousTrackButton.addActionListener(e -> {
             Audio.INSTANCE.currentSession.queueManager.previousTrack();
-            if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null) {
-                Audio.INSTANCE.startPlaying(Audio.INSTANCE.currentSession.queueManager.currentTrack, true, true);
+            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+            if(currentTrack != null) {
+                Audio.INSTANCE.startPlaying(currentTrack, true, true);
             }
         });
     }

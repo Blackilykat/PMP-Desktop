@@ -92,7 +92,7 @@ public class Audio {
         latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
             if (!canPlay) return;
             try {
-                currentSession.queueManager.currentTrack = track;
+                currentSession.queueManager.setCurrentTrack(track);
                 if(fromStart) {
                     currentSession.setPosition(0, true);
                 }
@@ -102,7 +102,7 @@ public class Audio {
                 if(track != null) {
                     reloadSong();
                     PlayBarWidget.timeBar.setMinimum(0);
-                    PlayBarWidget.timeBar.setMaximum(currentSession.queueManager.currentTrack.pcmData.length);
+                    PlayBarWidget.timeBar.setMaximum(track.pcmData.length);
                 } else {
                     PlayBarWidget.timeBar.setMinimum(0);
                     PlayBarWidget.timeBar.setMaximum(0);
@@ -115,7 +115,7 @@ public class Audio {
     }
 
     public boolean reloadSong() {
-        return FlacFileParser.parse(currentSession.queueManager.currentTrack.getFile(), this);
+        return FlacFileParser.parse(currentSession.queueManager.getCurrentTrack().getFile(), this);
     }
 
     public void setPlaying(boolean playing) {
@@ -125,46 +125,45 @@ public class Audio {
     }
 
 
-    public class AudioPlayingThread extends Thread {
+    public static class AudioPlayingThread extends Thread {
 
-        private final Audio instance;
+        private final Audio audio;
 
-        public AudioPlayingThread(Audio instance) {
-            this.instance = instance;
+        public AudioPlayingThread(Audio audio) {
+            this.audio = audio;
         }
 
         @Override
         public void run() {
             try {
-                int bufferSize = instance.sourceDataLine.getBufferSize();
+                int bufferSize = audio.sourceDataLine.getBufferSize();
                 while (true) {
-                    if(!instance.canPlay) return;
+                    if(!audio.canPlay) return;
 
-                    if(!instance.currentSession.getPlaying()) {
+                    if(!audio.currentSession.getPlaying()) {
                         Thread.sleep(100);
                         continue;
                     }
-                    if(instance.currentSession.queueManager.currentTrack == null) {
-                        setPlaying(false);
+                    Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
+                    if(currentTrack == null) {
+                        audio.setPlaying(false);
                         continue;
                     }
 
-                    if(instance.currentSession.queueManager.currentTrack.pcmData == null) {
-                        synchronized(instance.currentSession.queueManager.currentTrack) {
-                            instance.currentSession.queueManager.currentTrack.wait();
+                    if(currentTrack.pcmData == null) {
+                        synchronized(currentTrack) {
+                            currentTrack.wait();
                         }
                         continue;
                     }
 
                     byte[] buffer = new byte[bufferSize];
-                    synchronized(instance.audioLock) {
+                    synchronized(audio.audioLock) {
 
-                        if(instance.currentSession.getPosition() >= instance.currentSession.queueManager.currentTrack.pcmData.length - 4) {
-                            instance.setPlaying(false);
-                            currentSession.queueManager.nextTrack();
-                            if(currentSession.queueManager.currentTrack != null) {
-                                startPlaying(currentSession.queueManager.currentTrack, true, true);
-                            }
+                        if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - 4) {
+                            audio.setPlaying(false);
+                            audio.currentSession.queueManager.nextTrack();
+                            audio.startPlaying(audio.currentSession.queueManager.getCurrentTrack(), true, true);
                             continue;
                         }
 
@@ -173,30 +172,30 @@ public class Audio {
                         for(
                                 int i = 0;
                                 i < bufferSize - 3 &&
-                                        i + instance.currentSession.getPosition() < instance.currentSession.queueManager.currentTrack.pcmData.length - 3;
+                                        i + audio.currentSession.getPosition() < currentTrack.pcmData.length - 3;
                                 i += 4
                         ) {
                             // RIFF is little endian...
-                            int position = instance.currentSession.getPosition();
+                            int position = audio.currentSession.getPosition();
                             // L
-                            buffer[i + 1] = instance.currentSession.queueManager.currentTrack.pcmData[position];
-                            buffer[i] = instance.currentSession.queueManager.currentTrack.pcmData[position + 1];
+                            buffer[i + 1] = currentTrack.pcmData[position];
+                            buffer[i] = currentTrack.pcmData[position + 1];
 
                             // R
-                            buffer[i + 3] = instance.currentSession.queueManager.currentTrack.pcmData[position + 2];
-                            buffer[i + 2] = instance.currentSession.queueManager.currentTrack.pcmData[position + 3];
-                            instance.currentSession.setPosition(position + 4, false);
+                            buffer[i + 3] = currentTrack.pcmData[position + 2];
+                            buffer[i + 2] = currentTrack.pcmData[position + 3];
+                            audio.currentSession.setPosition(position + 4, false);
                         }
                     }
                     // do NOT move this in the synchronized block (it won't let go and will freeze the entire gui on ChangeSessionMenu)
-                    instance.sourceDataLine.write(buffer, 0, bufferSize);
+                    audio.sourceDataLine.write(buffer, 0, bufferSize);
 
                 }
             } catch(InterruptedException e) {
                 e.printStackTrace();
             }
-            sourceDataLine.drain();
-            sourceDataLine.close();
+            audio.sourceDataLine.drain();
+            audio.sourceDataLine.close();
         }
     }
 

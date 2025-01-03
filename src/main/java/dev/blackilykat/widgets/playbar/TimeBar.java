@@ -21,6 +21,7 @@
 package dev.blackilykat.widgets.playbar;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.Track;
 
 import javax.swing.JSlider;
 import javax.swing.plaf.basic.BasicSliderUI;
@@ -52,7 +53,8 @@ public class TimeBar extends JSlider {
 
     @Override
     public int getMaximum() {
-        return Audio.INSTANCE.currentSession.queueManager.currentTrack == null ? 0 : Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length;
+        Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+        return currentTrack == null ? 0 : currentTrack.pcmData.length;
     }
 
     public void update() {
@@ -101,11 +103,12 @@ public class TimeBar extends JSlider {
         @Override
         public void paintTrack(Graphics g) {
             super.paintTrack(g);
+            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
             double percent;
-            if(Audio.INSTANCE.currentSession.queueManager.currentTrack == null || Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData == null) {
+            if(currentTrack == null || currentTrack.pcmData == null) {
                 percent = 0;
             } else {
-                percent = ((double) Audio.INSTANCE.currentSession.getPosition()) / Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length;
+                percent = ((double) Audio.INSTANCE.currentSession.getPosition()) / currentTrack.pcmData.length;
             }
             int offset = (int) (percent * trackRect.width);
 
@@ -125,9 +128,9 @@ public class TimeBar extends JSlider {
             error while calculating the song length from the FLAC StreamInfo header. Everything plays fine and audio
             is able to read everything.
              */
-            if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null && Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData != null && (double) Audio.INSTANCE.currentSession.queueManager.currentTrack.loaded / Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length < 0.99) {
+            if(currentTrack != null && currentTrack.pcmData != null && (double) currentTrack.loaded / currentTrack.pcmData.length < 0.99) {
                 g.setColor(new Color(255, 0, 0, 50));
-                percent = ((double) Audio.INSTANCE.currentSession.queueManager.currentTrack.loaded) / Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length;
+                percent = ((double) currentTrack.loaded) / currentTrack.pcmData.length;
                 percent = Math.min(1, Math.max(0, percent));
                 offset = (int) (percent * trackRect.width);
                 paintTick(g, offset);
@@ -141,10 +144,10 @@ public class TimeBar extends JSlider {
             currentTimeSeconds %= 60;
 
             int totalTimeSeconds;
-            if(Audio.INSTANCE.currentSession.queueManager.currentTrack == null) {
+            if(currentTrack == null) {
                 totalTimeSeconds = 0;
             } else  {
-                totalTimeSeconds = (int) (Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length / Audio.INSTANCE.audioFormat.getFrameSize() / Audio.INSTANCE.audioFormat.getSampleRate());
+                totalTimeSeconds = (int) (currentTrack.pcmData.length / Audio.INSTANCE.audioFormat.getFrameSize() / Audio.INSTANCE.audioFormat.getSampleRate());
             }
             // hope no one needs hour marks ()
             int totalTimeMinutes = totalTimeSeconds / 60;
@@ -180,13 +183,14 @@ public class TimeBar extends JSlider {
             @Override
             public void mouseReleased(MouseEvent e) {
                 mouseDown = false;
+                Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
 
-                if(Audio.INSTANCE.currentSession.queueManager.currentTrack == null) return;
+                if(currentTrack == null) return;
 
                 double pos = e.getX() - trackRect.getX();
                 double percent = pos / trackRect.width;
                 percent = Math.min(1, Math.max(0, percent));
-                int songPosition = ((int) (percent * Audio.INSTANCE.currentSession.queueManager.currentTrack.pcmData.length));
+                int songPosition = ((int) (percent * currentTrack.pcmData.length));
                 songPosition -= songPosition % Audio.INSTANCE.audioFormat.getFrameSize();
                 Audio.INSTANCE.currentSession.setPosition(songPosition, true);
                 ((TimeBar)slider).update();
