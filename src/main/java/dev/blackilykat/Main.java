@@ -25,6 +25,9 @@ import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
 
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import java.awt.Color;
@@ -96,6 +99,13 @@ public class Main {
             Main.songListWidget = songListWidget;
             Main.libraryFiltersWidget = libraryFiltersWidget;
             Library.INSTANCE.reload();
+
+            JMenuBar menuBar = new JMenuBar();
+            JMenu generalMenu = new JMenu("General");
+
+
+            menuBar.add(generalMenu);
+            mainWindow.setJMenuBar(menuBar);
 
             mainWindow.setVisible(true);
         });
