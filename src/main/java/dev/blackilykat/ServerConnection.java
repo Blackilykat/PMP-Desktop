@@ -125,6 +125,8 @@ public class ServerConnection {
     public void disconnect() {
         System.out.println("Disconnecting from server!");
         connected = false;
+        messageSendingThread.interrupt();
+        inputReadingThread.interrupt();
         try {
             socket.close();
         } catch (IOException ignored) {}
@@ -237,10 +239,11 @@ public class ServerConnection {
                     increaseMessageIdCounter();
                 }
             } catch (IOException e) {
+                if(!connected) return;
                 throw new RuntimeException(e);
             } catch (InterruptedException ignored) {
             } finally {
-                disconnect();
+                if(connected) disconnect();
             }
         }
     }
@@ -301,10 +304,10 @@ public class ServerConnection {
                     }
                 }
             } catch (IOException e) {
-
+                if(!connected) return;
                 throw new RuntimeException(e);
             } finally {
-                disconnect();
+                if(connected) disconnect();
             }
         }
     }

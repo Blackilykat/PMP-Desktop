@@ -20,6 +20,8 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.menubar.connection.ConnectToServerMenuItem;
+import dev.blackilykat.menubar.connection.DisconnectFromServerMenuItem;
 import dev.blackilykat.menubar.connection.SetServerIpMenuItem;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
@@ -105,6 +107,8 @@ public class Main {
 
             JMenu connectionMenu = new JMenu("Connection");
             connectionMenu.add(new SetServerIpMenuItem());
+            connectionMenu.add(new ConnectToServerMenuItem());
+            connectionMenu.add(new DisconnectFromServerMenuItem());
             menuBar.add(connectionMenu);
             mainWindow.setJMenuBar(menuBar);
 
