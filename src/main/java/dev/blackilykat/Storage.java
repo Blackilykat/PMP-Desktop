@@ -144,4 +144,38 @@ public class Storage {
         }
         general.put("serverPublicKey", key);
     }
+
+    public static String getServerIp() {
+        return (String) general.getOrDefault("serverIp", "localhost");
+    }
+
+    public static void setServerIp(String serverIp) {
+        if(serverIp == null) {
+            general.remove("serverIp");
+            return;
+        }
+        general.put("serverIp", serverIp);
+    }
+    public static int getServerMainPort() {
+        return (Integer) general.getOrDefault("serverMainPort", 5000);
+    }
+
+    public static void setServerMainPort(int mainPort) {
+        if(mainPort < 0) {
+            general.remove("serverMainPort");
+            return;
+        }
+        general.put("serverMainPort", mainPort);
+    }
+    public static int getServerFilePort() {
+        return (Integer) general.getOrDefault("serverFilePort", 5001);
+    }
+
+    public static void setServerFilePort(int port) {
+        if(port < 0) {
+            general.remove("serverFilePort");
+            return;
+        }
+        general.put("serverFilePort", port);
+    }
 }

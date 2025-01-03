@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -54,6 +55,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ServerConnection {
     public static ServerConnection INSTANCE;
+    public final String ip;
+    public final int mainPort;
+    public final int filePort;
     public SSLSocket socket;
     public InputStream inputStream;
     public OutputStream outputStream;
@@ -67,7 +71,12 @@ public class ServerConnection {
     public Key serverPublicKey = null;
     public SSLContext sslContext = null;
 
-    public ServerConnection(InetAddress address, int port) throws IOException {
+    public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
+        System.out.printf("Connecting to server on %s:%d and %s:%d...\n", ip, mainPort, ip, filePort);
+        this.ip = ip;
+        this.mainPort = mainPort;
+        this.filePort = filePort;
+
         serverPublicKey = Storage.getServerPublicKey();
 
         try {
@@ -103,7 +112,7 @@ public class ServerConnection {
         } catch(NoSuchAlgorithmException | KeyManagementException e) {
             throw new RuntimeException(e);
         }
-        this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(address, port);
+        this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(InetAddress.getByName(ip), mainPort);
         this.inputStream = socket.getInputStream();
         this.outputStream = socket.getOutputStream();
     }
@@ -135,10 +144,10 @@ public class ServerConnection {
             File destination = new File(Storage.LIBRARY, name);
 
             // HttpsURLConnection hangs with insecure HTTP servers
-            if(supportsInsecureHTTP("localhost", 5001)) {
+            if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
-            URL url = new URL("https://localhost:5001/" + name);
+            URL url = new URI("https://" + ip + ":" + filePort + "/" + name).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
             connection.setHostnameVerifier((hostname, session) -> true);
@@ -151,7 +160,7 @@ public class ServerConnection {
             } else {
                 System.err.printf("Unexpected response code %d!", connection.getResponseCode());
             }
-        } catch(IOException e) {
+        } catch(IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
@@ -167,10 +176,10 @@ public class ServerConnection {
             System.out.println("Attempting to upload track " + name + "...");
             File source = new File(Storage.LIBRARY, name);
 
-            if(supportsInsecureHTTP("localhost", 5001)) {
+            if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
-            URL url = new URI("https://localhost:5001/" + name + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
+            URL url = new URI( "https://" + ip + ":" + filePort + "/" + name + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
             connection.setHostnameVerifier((hostname, session) -> true);
@@ -305,13 +314,13 @@ public class ServerConnection {
      */
     public static boolean supportsInsecureHTTP(String host, int port) {
         try {
-            URL httpUrl = new URL("http://" + host + ":" + port);
+            URL httpUrl = new URI("http://" + host + ":" + port).toURL();
             HttpURLConnection httpConnection = (HttpURLConnection) httpUrl.openConnection();
             httpConnection.setRequestMethod("GET");
             httpConnection.connect();
             httpConnection.getResponseCode(); // should throw here if https
             httpConnection.disconnect();
-        } catch(IOException e) {
+        } catch(IOException | URISyntaxException e) {
             return false;
         }
         return true;

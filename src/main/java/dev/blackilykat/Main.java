@@ -20,6 +20,7 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.menubar.connection.SetServerIpMenuItem;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
@@ -27,14 +28,12 @@ import dev.blackilykat.widgets.tracklist.SongListWidget;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.IOException;
-import java.net.InetAddress;
 
 public class Main {
     public static JFrame mainWindow;
@@ -102,9 +101,11 @@ public class Main {
 
             JMenuBar menuBar = new JMenuBar();
             JMenu generalMenu = new JMenu("General");
-
-
             menuBar.add(generalMenu);
+
+            JMenu connectionMenu = new JMenu("Connection");
+            connectionMenu.add(new SetServerIpMenuItem());
+            menuBar.add(connectionMenu);
             mainWindow.setJMenuBar(menuBar);
 
             mainWindow.setVisible(true);
@@ -120,7 +121,7 @@ public class Main {
             }
         }
         try {
-            ServerConnection.INSTANCE = new ServerConnection(InetAddress.getByName("localhost"), 5000);
+            ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
             ServerConnection.INSTANCE.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
