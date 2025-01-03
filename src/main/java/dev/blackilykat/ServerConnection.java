@@ -50,11 +50,16 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ServerConnection {
     public static ServerConnection INSTANCE;
+    private static List<ConnectionListener> onConnectListeners = new ArrayList<>();
+    private static List<ConnectionListener> onDisconnectListeners = new ArrayList<>();
+
     public final String ip;
     public final int mainPort;
     public final int filePort;
@@ -130,6 +135,7 @@ public class ServerConnection {
         try {
             socket.close();
         } catch (IOException ignored) {}
+        callDisconnectListeners(this);
     }
 
     public void send(Message message) {
@@ -327,5 +333,25 @@ public class ServerConnection {
             return false;
         }
         return true;
+    }
+
+    public static void addConnectListener(ConnectionListener listener) {
+        onConnectListeners.add(listener);
+    }
+
+    public static void addDisconnectListener(ConnectionListener listener) {
+        onDisconnectListeners.add(listener);
+    }
+
+    public static void callConnectListeners(ServerConnection connection) {
+        onConnectListeners.forEach(l -> l.run(connection));
+    }
+
+    public static void callDisconnectListeners(ServerConnection connection) {
+        onDisconnectListeners.forEach(l -> l.run(connection));
+    }
+
+    public interface ConnectionListener {
+        void run(ServerConnection connection);
     }
 }

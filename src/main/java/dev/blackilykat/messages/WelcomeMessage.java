@@ -86,6 +86,7 @@ public class WelcomeMessage extends Message {
             Storage.setCurrentActionID(latestActionId);
         }
         System.out.println("Successfully connected to server with client ID " + clientId);
+        ServerConnection.callConnectListeners(connection);
     }
 
     //@Override
