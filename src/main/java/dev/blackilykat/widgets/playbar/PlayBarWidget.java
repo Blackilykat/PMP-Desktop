@@ -105,28 +105,28 @@ public class PlayBarWidget extends Widget {
             Audio.INSTANCE.setPlaying(!getPlaying());
         });
         shuffleButton.addActionListener(e -> {
-            Audio.INSTANCE.queueManager.setShuffle(switch(Audio.INSTANCE.queueManager.getShuffle()) {
+            Audio.INSTANCE.currentSession.queueManager.setShuffle(switch(Audio.INSTANCE.currentSession.queueManager.getShuffle()) {
                 case OFF -> TrackQueueManager.ShuffleOption.ON;
                 case ON -> TrackQueueManager.ShuffleOption.OFF;
             });
         });
         repeatButton.addActionListener(e -> {
-            Audio.INSTANCE.queueManager.setRepeat(switch(Audio.INSTANCE.queueManager.getRepeat()) {
+            Audio.INSTANCE.currentSession.queueManager.setRepeat(switch(Audio.INSTANCE.currentSession.queueManager.getRepeat()) {
                 case OFF -> TrackQueueManager.RepeatOption.ALL;
                 case ALL -> TrackQueueManager.RepeatOption.TRACK;
                 case TRACK -> TrackQueueManager.RepeatOption.OFF;
             });
         });
         nextTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.queueManager.nextTrack();
-            if(Audio.INSTANCE.queueManager.currentTrack != null) {
-                Audio.INSTANCE.startPlaying(Audio.INSTANCE.queueManager.currentTrack.getFile().getPath());
+            Audio.INSTANCE.currentSession.queueManager.nextTrack();
+            if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null) {
+                Audio.INSTANCE.startPlaying(Audio.INSTANCE.currentSession.queueManager.currentTrack, true, true);
             }
         });
         previousTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.queueManager.previousTrack();
-            if(Audio.INSTANCE.queueManager.currentTrack != null) {
-                Audio.INSTANCE.startPlaying(Audio.INSTANCE.queueManager.currentTrack.getFile().getPath());
+            Audio.INSTANCE.currentSession.queueManager.previousTrack();
+            if(Audio.INSTANCE.currentSession.queueManager.currentTrack != null) {
+                Audio.INSTANCE.startPlaying(Audio.INSTANCE.currentSession.queueManager.currentTrack, true, true);
             }
         });
     }

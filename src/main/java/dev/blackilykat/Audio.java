@@ -21,13 +21,9 @@
 package dev.blackilykat;
 
 import dev.blackilykat.parsers.FlacFileParser;
-import dev.blackilykat.parsers.WavFileParser;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -43,11 +39,7 @@ public class Audio {
     public static Audio INSTANCE = null;
     boolean canPlay = true;
 
-    private Path currentlyPlayingPath = null;
-    private boolean playing = false;
-    private int position = 0;
-
-    public TrackQueueManager queueManager = new TrackQueueManager(Library.INSTANCE);
+    public PlaybackSession currentSession;
 
     // any other configuration doesn't work
     // might try to make it configurable in the future but also that sounds like a pain to implement
@@ -69,14 +61,15 @@ public class Audio {
 
     private SourceDataLine sourceDataLine;
 
-    private AudioPlayingThread audioPlayingThread = new AudioPlayingThread(
-        this
-    );
+    public AudioPlayingThread audioPlayingThread = new AudioPlayingThread(this);
+    public final Object audioLock = new Object();
 
     ThreadPoolExecutor songLoadingExecutor  = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     Future<?> latestSongLoadingFuture;
 
-    public Audio() {
+    public Audio(Library library) {
+        currentSession = new PlaybackSession(library);
+        currentSession.register();
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
             sourceDataLine.open(audioFormat, 2200);
@@ -91,7 +84,7 @@ public class Audio {
         }
     }
 
-    public void startPlaying(String path) {
+    public void startPlaying(Track track, boolean fromStart, boolean unpause) {
         if(latestSongLoadingFuture != null) {
             boolean thing = latestSongLoadingFuture.cancel(true);
             System.out.println("THING: " + thing);
@@ -99,19 +92,21 @@ public class Audio {
         latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
             if (!canPlay) return;
             try {
-                currentlyPlayingPath = Path.of(path);
-                if (
-                        !currentlyPlayingPath.toFile().exists() ||
-                                currentlyPlayingPath.toFile().isDirectory()
-                ) {
-                    currentlyPlayingPath = null;
-                    return;
+                currentSession.queueManager.currentTrack = track;
+                if(fromStart) {
+                    currentSession.setPosition(0, true);
                 }
-                position = 0;
-                setPlaying(true);
-                reloadSong();
-                PlayBarWidget.timeBar.setMinimum(0);
-                PlayBarWidget.timeBar.setMaximum(queueManager.currentTrack.pcmData.length);
+                if(unpause) {
+                    setPlaying(true);
+                }
+                if(track != null) {
+                    reloadSong();
+                    PlayBarWidget.timeBar.setMinimum(0);
+                    PlayBarWidget.timeBar.setMaximum(currentSession.queueManager.currentTrack.pcmData.length);
+                } else {
+                    PlayBarWidget.timeBar.setMinimum(0);
+                    PlayBarWidget.timeBar.setMaximum(0);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -119,36 +114,18 @@ public class Audio {
 
     }
 
-    public boolean reloadSong() throws IOException {
-        if(currentlyPlayingPath.toString().endsWith(".wav")) {
-            return WavFileParser.parse(currentlyPlayingPath.toFile(), this);
-        } else if(currentlyPlayingPath.toString().endsWith(".flac")) {
-            return FlacFileParser.parse(currentlyPlayingPath.toFile(), this);
-        }
-        return false;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-
-    public void setPosition(int position) {
-        if (!canPlay) return;
-        this.position = position;
-    }
-
-    public boolean getPlaying() {
-        return playing;
+    public boolean reloadSong() {
+        return FlacFileParser.parse(currentSession.queueManager.currentTrack.getFile(), this);
     }
 
     public void setPlaying(boolean playing) {
         if (!canPlay) return;
-        this.playing = playing;
+        this.currentSession.setPlaying(playing);
         PlayBarWidget.setPlaying(playing);
     }
 
 
-    private class AudioPlayingThread extends Thread {
+    public class AudioPlayingThread extends Thread {
 
         private final Audio instance;
 
@@ -161,55 +138,61 @@ public class Audio {
             try {
                 int bufferSize = instance.sourceDataLine.getBufferSize();
                 while (true) {
-                    if (!instance.canPlay) return;
-                    if (!instance.getPlaying()) {
+                    if(!instance.canPlay) return;
+
+                    if(!instance.currentSession.getPlaying()) {
                         Thread.sleep(100);
                         continue;
                     }
-                    if(instance.queueManager.currentTrack == null) {
+                    if(instance.currentSession.queueManager.currentTrack == null) {
                         setPlaying(false);
                         continue;
                     }
-                    if(instance.queueManager.currentTrack.pcmData == null) {
-                        synchronized(instance.queueManager.currentTrack) {
-                            instance.queueManager.currentTrack.wait();
-                        }
-                        continue;
-                    }
-                    if (instance.position >= instance.queueManager.currentTrack.pcmData.length-4) {
-                        instance.setPlaying(false);
-                        queueManager.nextTrack();
-                        System.out.println("hi");
-                        if(queueManager.currentTrack != null) {
-                            System.out.println("hi");
-                            startPlaying(queueManager.currentTrack.getFile().getPath());
-                        }
-                        continue;
-                    }
 
-                    PlayBarWidget.timeBar.update();
+                    if(instance.currentSession.queueManager.currentTrack.pcmData == null) {
+                        synchronized(instance.currentSession.queueManager.currentTrack) {
+                            instance.currentSession.queueManager.currentTrack.wait();
+                        }
+                        continue;
+                    }
 
                     byte[] buffer = new byte[bufferSize];
-                    for (
-                        int i = 0;
-                        i < bufferSize - 3 &&
-                                i + instance.position < instance.queueManager.currentTrack.pcmData.length - 3;
-                        i += 4
-                    ) {
-                        // RIFF is little endian...
+                    synchronized(instance.audioLock) {
 
-                        // L
-                        buffer[i + 1] = instance.queueManager.currentTrack.pcmData[instance.position];
-                        buffer[i] = instance.queueManager.currentTrack.pcmData[instance.position + 1];
+                        if(instance.currentSession.getPosition() >= instance.currentSession.queueManager.currentTrack.pcmData.length - 4) {
+                            instance.setPlaying(false);
+                            currentSession.queueManager.nextTrack();
+                            if(currentSession.queueManager.currentTrack != null) {
+                                startPlaying(currentSession.queueManager.currentTrack, true, true);
+                            }
+                            continue;
+                        }
 
-                        // R
-                        buffer[i + 3] = instance.queueManager.currentTrack.pcmData[instance.position + 2];
-                        buffer[i + 2] = instance.queueManager.currentTrack.pcmData[instance.position + 3];
-                        instance.position += 4;
+                        PlayBarWidget.timeBar.update();
+
+                        for(
+                                int i = 0;
+                                i < bufferSize - 3 &&
+                                        i + instance.currentSession.getPosition() < instance.currentSession.queueManager.currentTrack.pcmData.length - 3;
+                                i += 4
+                        ) {
+                            // RIFF is little endian...
+                            int position = instance.currentSession.getPosition();
+                            // L
+                            buffer[i + 1] = instance.currentSession.queueManager.currentTrack.pcmData[position];
+                            buffer[i] = instance.currentSession.queueManager.currentTrack.pcmData[position + 1];
+
+                            // R
+                            buffer[i + 3] = instance.currentSession.queueManager.currentTrack.pcmData[position + 2];
+                            buffer[i + 2] = instance.currentSession.queueManager.currentTrack.pcmData[position + 3];
+                            instance.currentSession.setPosition(position + 4, false);
+                        }
                     }
+                    // do NOT move this in the synchronized block (it won't let go and will freeze the entire gui on ChangeSessionMenu)
                     instance.sourceDataLine.write(buffer, 0, bufferSize);
+
                 }
-            } catch (InterruptedException e) {
+            } catch(InterruptedException e) {
                 e.printStackTrace();
             }
             sourceDataLine.drain();
@@ -218,6 +201,6 @@ public class Audio {
     }
 
     public static boolean isSupported(File file) {
-        return file.getName().endsWith(".wav") || file.getName().endsWith(".flac");
+        return file.getName().endsWith(".flac");
     }
 }

@@ -23,6 +23,7 @@ package dev.blackilykat;
 import dev.blackilykat.menubar.connection.ConnectToServerMenuItem;
 import dev.blackilykat.menubar.connection.DisconnectFromServerMenuItem;
 import dev.blackilykat.menubar.connection.SetServerIpMenuItem;
+import dev.blackilykat.menubar.playback.ChangeSessionMenu;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
@@ -50,7 +51,7 @@ public class Main {
 
         Storage.init();
         Library.INSTANCE = new Library();
-        Audio.INSTANCE = new Audio();
+        Audio.INSTANCE = new Audio(Library.INSTANCE);
 
         SwingUtilities.invokeLater(() -> {
             mainWindow = new JFrame("PMP Desktop");
@@ -110,6 +111,10 @@ public class Main {
             connectionMenu.add(new ConnectToServerMenuItem());
             connectionMenu.add(new DisconnectFromServerMenuItem());
             menuBar.add(connectionMenu);
+
+            JMenu playbackmenu = new JMenu("Playback");
+            playbackmenu.add(new ChangeSessionMenu());
+            menuBar.add(playbackmenu);
             mainWindow.setJMenuBar(menuBar);
 
             mainWindow.setVisible(true);
