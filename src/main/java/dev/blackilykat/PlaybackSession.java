@@ -20,20 +20,42 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.util.Icons;
+import dev.blackilykat.widgets.playbar.PlayBarWidget;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.Stack;
 
 public class PlaybackSession {
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
     private static final List<SessionListener> registerListeners = new ArrayList<>();
+
+    private final Library library;
+    private Random random = new Random();
+
+    private Stack<Track> previousTracks = new Stack<>();
+    private Track currentTrack = null;
+
+    //TODO forced queue where user can add a track to a queue and it will take priority over the normal next tracks
+
+    // this is a stack because if the user goes to a previous track they should be able to get back. normally it would
+    // only have 1 element
+    private Stack<Track> nextTracks = new Stack<>();
+
+    private ShuffleOption shuffle = ShuffleOption.OFF;
+    private RepeatOption repeat = RepeatOption.OFF;
     private final List<SessionListener> newTrackListeners = new ArrayList<>();
 
-    public TrackQueueManager queueManager;
     private boolean playing;
     private int position;
+    // not final cause it'll default to 0 when offline but let the server decide when connected
+    public int id;
 
-    public PlaybackSession(Library library) {
-        this.queueManager = new TrackQueueManager(library, this);
+    public PlaybackSession(Library library, int id) {
+        this.library = library;
+        this.id = id;
         playing = false;
         position = 0;
     }
@@ -77,5 +99,127 @@ public class PlaybackSession {
 
     public interface SessionListener {
         void run(PlaybackSession session);
+    }
+
+    public void nextTrack() {
+        if(library.filteredTracks.isEmpty()) return;
+        if(currentTrack != null) {
+            previousTracks.push(currentTrack);
+        }
+        currentTrack = nextTracks.isEmpty() ? pickNext() : nextTracks.pop();
+        Track next = pickNext();
+        if(nextTracks.isEmpty() && next != null) {
+            nextTracks.push(next);
+        }
+        this.callNewTrackListeners();
+    }
+
+    public void previousTrack() {
+        if(previousTracks.isEmpty()) return;
+        if(currentTrack != null) {
+            nextTracks.push(currentTrack);
+        }
+        currentTrack = previousTracks.pop();
+        this.callNewTrackListeners();
+    }
+
+    public void setCurrentTrack(Track track) {
+        if(currentTrack != null) {
+            previousTracks.push(currentTrack);
+        }
+        currentTrack = track;
+        reloadNext();
+        this.callNewTrackListeners();
+    }
+
+    public Track getCurrentTrack() {
+        return currentTrack;
+    }
+
+    public void reloadNext() {
+        nextTracks.clear();
+    }
+
+    public void clearPrevious() {
+        previousTracks.clear();
+    }
+
+    public void setShuffle(ShuffleOption option) {
+        shuffle = option;
+        PlayBarWidget.shuffleButton.setIcon(switch(shuffle) {
+            case ON -> Icons.svgIcon(Icons.SHUFFLE_ON, 16, 16);
+            case OFF -> Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16);
+        });
+        reloadNext();
+    }
+
+    public ShuffleOption getShuffle() {
+        return shuffle;
+    }
+
+    public void setRepeat(RepeatOption option) {
+        repeat = option;
+        PlayBarWidget.repeatButton.setIcon(switch(repeat) {
+            case ALL -> Icons.svgIcon(Icons.REPEAT_ALL, 16, 16);
+            case TRACK -> Icons.svgIcon(Icons.REPEAT_ONE, 16, 16);
+            case OFF -> Icons.svgIcon(Icons.REPEAT_OFF, 16, 16);
+        });
+        reloadNext();
+    }
+
+    public RepeatOption getRepeat() {
+        return repeat;
+    }
+
+    private Track pickNext() {
+        System.out.println("Filtered tracks size: " + library.filteredTracks.size());
+        System.out.println("First filtered track: " + library.filteredTracks.getFirst());
+        System.out.println("Last filtered track: " + library.filteredTracks.getLast());
+        System.out.println("Current track: " + currentTrack);
+        System.out.println("Shuffle: " + shuffle);
+        System.out.println("Repeat: " + repeat);
+        if(library.filteredTracks.isEmpty()) return null;
+        if(currentTrack == null) {
+            if(shuffle == ShuffleOption.ON) {
+                return library.filteredTracks.get(random.nextInt(library.filteredTracks.size()));
+            } else {
+                return library.filteredTracks.getFirst();
+            }
+        } else {
+            if(repeat == RepeatOption.TRACK) {
+                return currentTrack;
+            } else if(shuffle == ShuffleOption.ON) {
+                return library.filteredTracks.get(random.nextInt(library.filteredTracks.size()));
+            } else if(library.filteredTracks.getLast() != currentTrack) {
+                return library.filteredTracks.get(library.filteredTracks.indexOf(currentTrack) + 1);
+                //  == is intentional
+            } else if(library.filteredTracks.getLast() == currentTrack && repeat == RepeatOption.ALL) {
+                return library.filteredTracks.getFirst();
+            }
+        }
+        return null;
+    }
+
+
+
+
+    public enum ShuffleOption {
+        ON,
+        OFF
+    }
+
+    public enum RepeatOption {
+        /**
+         * Repeat this track. Takes priority over shuffle.
+         */
+        TRACK,
+        /**
+         * When at the end of the track list, get back to the start. Does nothing if shuffle is on.
+         */
+        ALL,
+        /**
+         * When at the end of the track list, stop playing.
+         */
+        OFF
     }
 }

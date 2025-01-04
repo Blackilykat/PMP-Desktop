@@ -112,7 +112,7 @@ public class TrackPanel extends JPanel {
                 if(e.getButton() != MouseEvent.BUTTON1) return;
                 Instant now = Instant.now();
                 if(lastClick != null && now.toEpochMilli() - lastClick.toEpochMilli() < 500) {
-                    Audio.INSTANCE.currentSession.queueManager.setCurrentTrack(track);
+                    Audio.INSTANCE.currentSession.setCurrentTrack(track);
                     Audio.INSTANCE.startPlaying(track, true, true);
                     lastClick = null;
                 } else {

@@ -68,7 +68,7 @@ public class Audio {
     Future<?> latestSongLoadingFuture;
 
     public Audio(Library library) {
-        currentSession = new PlaybackSession(library);
+        currentSession = new PlaybackSession(library, 0);
         currentSession.register();
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
@@ -92,7 +92,7 @@ public class Audio {
         latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
             if (!canPlay) return;
             try {
-                currentSession.queueManager.setCurrentTrack(track);
+                currentSession.setCurrentTrack(track);
                 if(fromStart) {
                     currentSession.setPosition(0, true);
                 }
@@ -115,7 +115,7 @@ public class Audio {
     }
 
     public boolean reloadSong() {
-        return FlacFileParser.parse(currentSession.queueManager.getCurrentTrack().getFile(), this);
+        return FlacFileParser.parse(currentSession.getCurrentTrack().getFile(), this);
     }
 
     public void setPlaying(boolean playing) {
@@ -144,7 +144,7 @@ public class Audio {
                         Thread.sleep(100);
                         continue;
                     }
-                    Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
+                    Track currentTrack = audio.currentSession.getCurrentTrack();
                     if(currentTrack == null) {
                         audio.setPlaying(false);
                         continue;
@@ -162,8 +162,8 @@ public class Audio {
 
                         if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - 4) {
                             audio.setPlaying(false);
-                            audio.currentSession.queueManager.nextTrack();
-                            audio.startPlaying(audio.currentSession.queueManager.getCurrentTrack(), true, true);
+                            audio.currentSession.nextTrack();
+                            audio.startPlaying(audio.currentSession.getCurrentTrack(), true, true);
                             continue;
                         }
 

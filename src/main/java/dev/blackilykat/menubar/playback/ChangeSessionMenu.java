@@ -24,7 +24,6 @@ import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.Track;
-import dev.blackilykat.TrackQueueManager;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -36,7 +35,7 @@ public class ChangeSessionMenu extends JMenu {
 
         JMenuItem createSessionItem = new JMenuItem("Create session");
         createSessionItem.addActionListener(e -> {
-            PlaybackSession session = new PlaybackSession(Library.INSTANCE);
+            PlaybackSession session = new PlaybackSession(Library.INSTANCE, ++counter);
             session.register();
         });
         this.add(createSessionItem);
@@ -49,27 +48,25 @@ public class ChangeSessionMenu extends JMenu {
         });
     }
     private void addSessionButton(PlaybackSession session) {
-        int index = ++counter;
-        JMenuItem item = new JMenuItem(getItemText(session, index));
+        JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
             // avoid changing stuff null WHILE it's processing
             synchronized(Audio.INSTANCE.audioLock) {
-                Track oldTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+                Track oldTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
                 if(oldTrack != null) {
                     oldTrack.pcmData = null;
                 }
                 Audio.INSTANCE.currentSession = session;
-                Audio.INSTANCE.startPlaying(session.queueManager.getCurrentTrack(), false, false);
+                Audio.INSTANCE.startPlaying(session.getCurrentTrack(), false, false);
                 Audio.INSTANCE.setPlaying(session.getPlaying());
 
                 // update icons
-                TrackQueueManager mgr = Audio.INSTANCE.currentSession.queueManager;
-                mgr.setShuffle(mgr.getShuffle());
-                mgr.setRepeat(mgr.getRepeat());
+                session.setShuffle(session.getShuffle());
+                session.setRepeat(session.getRepeat());
             }
         });
         session.registerNewTrackListener(s -> {
-            item.setText(getItemText(s, index));
+            item.setText(getItemText(s));
             // rezise the menu accordingly
             if(ChangeSessionMenu.this.isPopupMenuVisible()) {
                 ChangeSessionMenu.this.setPopupMenuVisible(false);
@@ -79,9 +76,9 @@ public class ChangeSessionMenu extends JMenu {
         this.add(item);
     }
 
-    private static String getItemText(PlaybackSession session, int index) {
-        StringBuilder builder = new StringBuilder("Session ").append(index);
-        Track currentTrack = session.queueManager.getCurrentTrack();
+    private static String getItemText(PlaybackSession session) {
+        StringBuilder builder = new StringBuilder("Session ").append(session.id);
+        Track currentTrack = session.getCurrentTrack();
         if(currentTrack != null) {
             builder.append(": ").append(currentTrack.title);
         }

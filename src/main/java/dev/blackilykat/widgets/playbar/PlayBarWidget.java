@@ -21,8 +21,8 @@
 package dev.blackilykat.widgets.playbar;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.Track;
-import dev.blackilykat.TrackQueueManager;
 import dev.blackilykat.util.Icons;
 import dev.blackilykat.widgets.Widget;
 
@@ -106,28 +106,28 @@ public class PlayBarWidget extends Widget {
             Audio.INSTANCE.setPlaying(!getPlaying());
         });
         shuffleButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.queueManager.setShuffle(switch(Audio.INSTANCE.currentSession.queueManager.getShuffle()) {
-                case OFF -> TrackQueueManager.ShuffleOption.ON;
-                case ON -> TrackQueueManager.ShuffleOption.OFF;
+            Audio.INSTANCE.currentSession.setShuffle(switch(Audio.INSTANCE.currentSession.getShuffle()) {
+                case OFF -> PlaybackSession.ShuffleOption.ON;
+                case ON -> PlaybackSession.ShuffleOption.OFF;
             });
         });
         repeatButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.queueManager.setRepeat(switch(Audio.INSTANCE.currentSession.queueManager.getRepeat()) {
-                case OFF -> TrackQueueManager.RepeatOption.ALL;
-                case ALL -> TrackQueueManager.RepeatOption.TRACK;
-                case TRACK -> TrackQueueManager.RepeatOption.OFF;
+            Audio.INSTANCE.currentSession.setRepeat(switch(Audio.INSTANCE.currentSession.getRepeat()) {
+                case OFF -> PlaybackSession.RepeatOption.ALL;
+                case ALL -> PlaybackSession.RepeatOption.TRACK;
+                case TRACK -> PlaybackSession.RepeatOption.OFF;
             });
         });
         nextTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.queueManager.nextTrack();
-            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+            Audio.INSTANCE.currentSession.nextTrack();
+            Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
             if(currentTrack != null) {
                 Audio.INSTANCE.startPlaying(currentTrack, true, true);
             }
         });
         previousTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.queueManager.previousTrack();
-            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+            Audio.INSTANCE.currentSession.previousTrack();
+            Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
             if(currentTrack != null) {
                 Audio.INSTANCE.startPlaying(currentTrack, true, true);
             }

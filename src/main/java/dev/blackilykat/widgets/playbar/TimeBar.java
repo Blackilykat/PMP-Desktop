@@ -53,7 +53,7 @@ public class TimeBar extends JSlider {
 
     @Override
     public int getMaximum() {
-        Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+        Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
         return currentTrack == null ? 0 : currentTrack.pcmData.length;
     }
 
@@ -103,7 +103,7 @@ public class TimeBar extends JSlider {
         @Override
         public void paintTrack(Graphics g) {
             super.paintTrack(g);
-            Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+            Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
             double percent;
             if(currentTrack == null || currentTrack.pcmData == null) {
                 percent = 0;
@@ -183,7 +183,7 @@ public class TimeBar extends JSlider {
             @Override
             public void mouseReleased(MouseEvent e) {
                 mouseDown = false;
-                Track currentTrack = Audio.INSTANCE.currentSession.queueManager.getCurrentTrack();
+                Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
 
                 if(currentTrack == null) return;
 

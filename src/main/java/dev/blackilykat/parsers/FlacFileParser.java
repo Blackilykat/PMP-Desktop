@@ -48,7 +48,7 @@ public class FlacFileParser implements PCMProcessor {
             FlacFileParser instance = new FlacFileParser(audio);
             decoder.addPCMProcessor(instance);
             instance.metadata = decoder.readMetadata();
-            audio.currentSession.queueManager.getCurrentTrack().loaded = 0;
+            audio.currentSession.getCurrentTrack().loaded = 0;
             try {
                 decoder.decodeFrames();
             } catch (EOFException ignored) {}
@@ -61,7 +61,7 @@ public class FlacFileParser implements PCMProcessor {
 
     @Override
     public void processStreamInfo(StreamInfo streamInfo) {
-        Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
+        Track currentTrack = audio.currentSession.getCurrentTrack();
         long unprocessedLength = streamInfo.getTotalSamples() * streamInfo.getBitsPerSample() * streamInfo.getChannels() / 8;
         currentTrack.pcmData = new byte[((Double)(unprocessedLength * (2.0/streamInfo.getBitsPerSample()*8) * ((double) audio.audioFormat.getChannels()/streamInfo.getChannels()) * (audio.audioFormat.getSampleRate() / streamInfo.getSampleRate()))).intValue()];
         synchronized(currentTrack) {
@@ -136,7 +136,7 @@ public class FlacFileParser implements PCMProcessor {
                 }
             }
         }
-        Track currentTrack = audio.currentSession.queueManager.getCurrentTrack();
+        Track currentTrack = audio.currentSession.getCurrentTrack();
 
         System.arraycopy(parsedData, 0, currentTrack.pcmData, bytesProcessed, parsedData.length);
         bytesProcessed += parsedData.length;
