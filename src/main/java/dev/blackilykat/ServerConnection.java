@@ -283,6 +283,8 @@ public class ServerConnection {
                                 case LibraryHashesMessage.MESSAGE_TYPE -> LibraryHashesMessage.fromJson(json);
                                 case TestMessage.MESSAGE_TYPE -> TestMessage.fromJson(json);
                                 case LibraryActionRequestMessage.MESSAGE_TYPE -> LibraryActionRequestMessage.fromJson(json);
+                                case PlaybackSessionCreateMessage.MESSAGE_TYPE -> PlaybackSessionCreateMessage.fromJson(json);
+                                case PlaybackSessionUpdateMessage.MESSAGE_TYPE -> PlaybackSessionUpdateMessage.fromJson(json);
                                 default -> {
                                     throw new MessageInvalidContentsException("Unknown message_type '"+messageType+"'");
                                 }

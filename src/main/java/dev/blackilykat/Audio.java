@@ -20,10 +20,13 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.messages.PlaybackSessionCreateMessage;
+import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.parsers.FlacFileParser;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -44,32 +47,39 @@ public class Audio {
     // any other configuration doesn't work
     // might try to make it configurable in the future but also that sounds like a pain to implement
     public final AudioFormat audioFormat = new AudioFormat(
-        AudioFormat.Encoding.PCM_SIGNED,
-        44100,
-        16,
-        2,
-        4,
-        44100,
-        true
-    );
+            AudioFormat.Encoding.PCM_SIGNED,
+            44100,
+            16,
+            2,
+            4,
+            44100,
+            true);
 
     private Line.Info info = new DataLine.Info(
-        SourceDataLine.class,
-        audioFormat,
-        2200
-    );
+            SourceDataLine.class,
+            audioFormat,
+            2200);
 
     private SourceDataLine sourceDataLine;
 
     public AudioPlayingThread audioPlayingThread = new AudioPlayingThread(this);
     public final Object audioLock = new Object();
 
-    ThreadPoolExecutor songLoadingExecutor  = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+    ThreadPoolExecutor songLoadingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     Future<?> latestSongLoadingFuture;
 
     public Audio(Library library) {
         currentSession = new PlaybackSession(library, 0);
         currentSession.register();
+        if (ServerConnection.INSTANCE != null) {
+            ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(0, null));
+            currentSession.setOwnerId(ServerConnection.INSTANCE.clientId);
+        }
+        ServerConnection.addConnectListener(conn -> {
+            ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(0, null));
+            if (currentSession.getOwnerId() == -1)
+                currentSession.setOwnerId(conn.clientId);
+        });
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
             sourceDataLine.open(audioFormat, 2200);
@@ -84,20 +94,27 @@ public class Audio {
         }
     }
 
-    public void startPlaying(Track track, boolean fromStart, boolean unpause) {
+    public void startPlaying(Track track, boolean reset) {
         if(latestSongLoadingFuture != null) {
             boolean thing = latestSongLoadingFuture.cancel(true);
             System.out.println("THING: " + thing);
         }
         latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
             if (!canPlay) return;
+            // reset is true when the action was caused by this client (so send it to the server) and false when it was caused by the server
+            if(reset) {
+                PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null);
+            }
+            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(currentSession.id, null, null,
+                    null, null, null, null, Instant.now());
             try {
                 currentSession.setCurrentTrack(track);
-                if(fromStart) {
+                if (reset) {
                     currentSession.setPosition(0, true);
-                }
-                if(unpause) {
                     setPlaying(true);
+                    if(ServerConnection.INSTANCE != null) {
+                        ServerConnection.INSTANCE.send(PlaybackSessionUpdateMessage.messageBuffer);
+                    }
                 }
                 if(track != null) {
                     reloadSong();
@@ -110,6 +127,7 @@ public class Audio {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            PlaybackSessionUpdateMessage.messageBuffer = null;
         });
 
     }
@@ -123,7 +141,6 @@ public class Audio {
         this.currentSession.setPlaying(playing);
         PlayBarWidget.setPlaying(playing);
     }
-
 
     public static class AudioPlayingThread extends Thread {
 
@@ -163,31 +180,34 @@ public class Audio {
                         if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - 4) {
                             audio.setPlaying(false);
                             audio.currentSession.nextTrack();
-                            audio.startPlaying(audio.currentSession.getCurrentTrack(), true, true);
+                            audio.startPlaying(audio.currentSession.getCurrentTrack(), true);
                             continue;
                         }
 
                         PlayBarWidget.timeBar.update();
 
-                        for(
-                                int i = 0;
-                                i < bufferSize - 3 &&
-                                        i + audio.currentSession.getPosition() < currentTrack.pcmData.length - 3;
-                                i += 4
-                        ) {
+                        for (int i = 0; i < bufferSize - 3 &&
+                                i + audio.currentSession.getPosition() < currentTrack.pcmData.length - 3; i += 4) {
                             // RIFF is little endian...
                             int position = audio.currentSession.getPosition();
-                            // L
-                            buffer[i + 1] = currentTrack.pcmData[position];
-                            buffer[i] = currentTrack.pcmData[position + 1];
 
-                            // R
-                            buffer[i + 3] = currentTrack.pcmData[position + 2];
-                            buffer[i + 2] = currentTrack.pcmData[position + 3];
+                            if (ServerConnection.INSTANCE == null || (audio.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId)) {
+                                // System.out.println("AAAAAAA " + audio.currentSession.getOwnerId() + " " +
+                                // (ServerConnection.INSTANCE != null ? ServerConnection.INSTANCE.clientId :
+                                // "no"));
+                                // L
+                                buffer[i + 1] = currentTrack.pcmData[position];
+                                buffer[i] = currentTrack.pcmData[position + 1];
+
+                                // R
+                                buffer[i + 3] = currentTrack.pcmData[position + 2];
+                                buffer[i + 2] = currentTrack.pcmData[position + 3];
+                            }
                             audio.currentSession.setPosition(position + 4, false);
                         }
                     }
-                    // do NOT move this in the synchronized block (it won't let go and will freeze the entire gui on ChangeSessionMenu)
+                    // do NOT move this in the synchronized block (it won't let go and will freeze
+                    // the entire gui on ChangeSessionMenu)
                     audio.sourceDataLine.write(buffer, 0, bufferSize);
 
                 }

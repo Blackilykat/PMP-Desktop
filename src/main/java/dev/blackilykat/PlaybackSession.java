@@ -20,9 +20,11 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.util.Icons;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -46,12 +48,19 @@ public class PlaybackSession {
 
     private ShuffleOption shuffle = ShuffleOption.OFF;
     private RepeatOption repeat = RepeatOption.OFF;
-    private final List<SessionListener> newTrackListeners = new ArrayList<>();
+    private final List<SessionListener> updateListeners = new ArrayList<>();
 
     private boolean playing;
     private int position;
+    public int lastSharedPosition = 0;
+    public Instant lastSharedPositionTime = null;
+
     // not final cause it'll default to 0 when offline but let the server decide when connected
     public int id;
+
+    private int ownerId = -1;
+
+    public boolean acknowledgedByServer = false;
 
     public PlaybackSession(Library library, int id) {
         this.library = library;
@@ -66,6 +75,19 @@ public class PlaybackSession {
 
     public void setPosition(int position, boolean isJump) {
         this.position = position;
+        if(isJump) {
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null);
+            callUpdateListeners();
+        }
+    }
+
+    public void recalculatePosition() {
+        int offset = 0;
+        if(lastSharedPositionTime != null) {
+            offset = (int) ((Instant.now().toEpochMilli() - lastSharedPositionTime.toEpochMilli()) * 44100) / 1000;
+        }
+        offset -= offset % 4;
+        setPosition(lastSharedPosition + offset, true);
     }
 
     public boolean getPlaying() {
@@ -74,6 +96,20 @@ public class PlaybackSession {
 
     public void setPlaying(boolean playing) {
         this.playing = playing;
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null);
+        callUpdateListeners();
+    }
+
+    public int getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(int ownerId) {
+        this.ownerId = ownerId;
+        if(acknowledgedByServer) {
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, ownerId);
+        }
+        callUpdateListeners();
     }
 
     public void register() {
@@ -81,12 +117,12 @@ public class PlaybackSession {
         registerListeners.forEach(l -> l.run(this));
     }
 
-    public void registerNewTrackListener(SessionListener listener) {
-        newTrackListeners.add(listener);
+    public void registerUpdateListener(SessionListener listener) {
+        updateListeners.add(listener);
     }
 
-    public void callNewTrackListeners() {
-        newTrackListeners.forEach(l -> l.run(this));
+    public void callUpdateListeners() {
+        updateListeners.forEach(l -> l.run(this));
     }
 
     public static PlaybackSession[] getAvailableSessions() {
@@ -111,7 +147,7 @@ public class PlaybackSession {
         if(nextTracks.isEmpty() && next != null) {
             nextTracks.push(next);
         }
-        this.callNewTrackListeners();
+        this.callUpdateListeners();
     }
 
     public void previousTrack() {
@@ -120,7 +156,7 @@ public class PlaybackSession {
             nextTracks.push(currentTrack);
         }
         currentTrack = previousTracks.pop();
-        this.callNewTrackListeners();
+        this.callUpdateListeners();
     }
 
     public void setCurrentTrack(Track track) {
@@ -129,7 +165,7 @@ public class PlaybackSession {
         }
         currentTrack = track;
         reloadNext();
-        this.callNewTrackListeners();
+        this.callUpdateListeners();
     }
 
     public Track getCurrentTrack() {
@@ -151,6 +187,8 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16);
         });
         reloadNext();
+        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null);
+        callUpdateListeners();
     }
 
     public ShuffleOption getShuffle() {
@@ -165,6 +203,8 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.REPEAT_OFF, 16, 16);
         });
         reloadNext();
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null);
+        callUpdateListeners();
     }
 
     public RepeatOption getRepeat() {
@@ -221,5 +261,23 @@ public class PlaybackSession {
          * When at the end of the track list, stop playing.
          */
         OFF
+    }
+
+    // temporary
+    @Override
+    public String toString() {
+
+        return "Session{\n" +
+                "currentTrack: " + currentTrack + "\n" +
+                "shuffle: " + shuffle + "\n" +
+                "repeat: " + repeat + "\n" +
+                "playing: " + playing + "\n" +
+                "position: " + position + "\n" +
+                "lastSharedPosition: " + lastSharedPosition + "\n" +
+                "lastSharedPositionTime: " + lastSharedPositionTime + "\n" +
+                "id: " + id + "\n" +
+                "ownerId: " + ownerId + "\n" +
+                "acknowledgedByServer: " + acknowledgedByServer + "\n" +
+                "}";
     }
 }

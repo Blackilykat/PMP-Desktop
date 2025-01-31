@@ -122,14 +122,14 @@ public class PlayBarWidget extends Widget {
             Audio.INSTANCE.currentSession.nextTrack();
             Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
             if(currentTrack != null) {
-                Audio.INSTANCE.startPlaying(currentTrack, true, true);
+                Audio.INSTANCE.startPlaying(currentTrack, true);
             }
         });
         previousTrackButton.addActionListener(e -> {
             Audio.INSTANCE.currentSession.previousTrack();
             Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
             if(currentTrack != null) {
-                Audio.INSTANCE.startPlaying(currentTrack, true, true);
+                Audio.INSTANCE.startPlaying(currentTrack, true);
             }
         });
     }

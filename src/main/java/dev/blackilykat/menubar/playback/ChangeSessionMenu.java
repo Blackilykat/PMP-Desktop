@@ -23,7 +23,12 @@ package dev.blackilykat.menubar.playback;
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.PlaybackSession;
+import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
+import dev.blackilykat.messages.PlaybackSessionCreateMessage;
+import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
+
+import java.time.Instant;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -37,6 +42,9 @@ public class ChangeSessionMenu extends JMenu {
         createSessionItem.addActionListener(e -> {
             PlaybackSession session = new PlaybackSession(Library.INSTANCE, ++counter);
             session.register();
+            if(ServerConnection.INSTANCE != null) {
+                ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(counter, null));
+            }
         });
         this.add(createSessionItem);
 
@@ -50,22 +58,34 @@ public class ChangeSessionMenu extends JMenu {
     private void addSessionButton(PlaybackSession session) {
         JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
+            System.out.println("Switching to session " + session.toString());
+            Audio.INSTANCE.currentSession.setOwnerId(-1);
+            if(session.getOwnerId() == -1 && ServerConnection.INSTANCE != null) {
+                session.setOwnerId(ServerConnection.INSTANCE.clientId);
+            }
+
+            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
+                    null, null, null, null, Instant.now());
             // avoid changing stuff null WHILE it's processing
             synchronized(Audio.INSTANCE.audioLock) {
                 Track oldTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
                 if(oldTrack != null) {
                     oldTrack.pcmData = null;
                 }
+                if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
+                    session.recalculatePosition();
+                }
                 Audio.INSTANCE.currentSession = session;
-                Audio.INSTANCE.startPlaying(session.getCurrentTrack(), false, false);
+                Audio.INSTANCE.startPlaying(session.getCurrentTrack(), false);
                 Audio.INSTANCE.setPlaying(session.getPlaying());
 
                 // update icons
                 session.setShuffle(session.getShuffle());
                 session.setRepeat(session.getRepeat());
             }
+            PlaybackSessionUpdateMessage.messageBuffer = null;
         });
-        session.registerNewTrackListener(s -> {
+        session.registerUpdateListener(s -> {
             item.setText(getItemText(s));
             // rezise the menu accordingly
             if(ChangeSessionMenu.this.isPopupMenuVisible()) {
@@ -81,6 +101,14 @@ public class ChangeSessionMenu extends JMenu {
         Track currentTrack = session.getCurrentTrack();
         if(currentTrack != null) {
             builder.append(": ").append(currentTrack.title);
+        }
+        int owner = session.getOwnerId();
+        if(owner != -1) {
+            if(owner != ServerConnection.INSTANCE.clientId) {
+                builder.append(" on Client ").append(owner);
+            } else {
+                builder.append(" on this client  (").append(owner).append(")");
+            }
         }
         return builder.toString();
     }
