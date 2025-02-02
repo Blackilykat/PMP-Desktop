@@ -237,8 +237,9 @@ public class ServerConnection {
             try {
                 while (true) {
                     Message message = messageQueue.take();
-                    outputStream.write((message.withMessageId(getMessageIdCounter()).toJson() + "\n")
-                            .getBytes(StandardCharsets.UTF_8));
+                    String messageStr = (message.withMessageId(getMessageIdCounter()).toJson() + "\n");
+                    System.out.println("Sending message: " + messageStr);
+                    outputStream.write(messageStr.getBytes(StandardCharsets.UTF_8));
                     synchronized(message) {
                         message.notifyAll();
                     }
@@ -266,6 +267,7 @@ public class ServerConnection {
                         inputBuffer.append((char) read);
                     } else if(!inputBuffer.isEmpty()) {
                         String message = inputBuffer.toString();
+                        System.out.println("Reveiving message: " + message);
                         try {
                             JsonObject json = Json.fromJsonObject(message);
                             String messageType;
