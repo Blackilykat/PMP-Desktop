@@ -59,7 +59,9 @@ public class ChangeSessionMenu extends JMenu {
         JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
             System.out.println("Switching to session " + session.toString());
-            Audio.INSTANCE.currentSession.setOwnerId(-1);
+            if(Audio.INSTANCE.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
+                Audio.INSTANCE.currentSession.setOwnerId(-1);
+            }
             if(session.getOwnerId() == -1 && ServerConnection.INSTANCE != null) {
                 session.setOwnerId(ServerConnection.INSTANCE.clientId);
             }
