@@ -97,6 +97,9 @@ public class PlaybackSession {
     public void setPlaying(boolean playing) {
         this.playing = playing;
         PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null);
+        if(Audio.INSTANCE.currentSession == this) {
+            PlayBarWidget.setPlaying(playing);
+        }
         callUpdateListeners();
     }
 
