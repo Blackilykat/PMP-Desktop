@@ -83,8 +83,8 @@ public class PlaybackSession {
 
     public void recalculatePosition() {
         int offset = 0;
-        if(lastSharedPositionTime != null) {
-            offset = (int) ((Instant.now().toEpochMilli() - lastSharedPositionTime.toEpochMilli()) * 44100) / 1000;
+        if(playing && lastSharedPositionTime != null) {
+            offset = (int) (((Instant.now().toEpochMilli() - lastSharedPositionTime.toEpochMilli()) * 44100 * 4) / 1000);
         }
         offset -= offset % 4;
         setPosition(lastSharedPosition + offset, true);
