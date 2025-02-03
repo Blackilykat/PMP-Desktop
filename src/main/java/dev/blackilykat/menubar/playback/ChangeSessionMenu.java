@@ -22,6 +22,7 @@ package dev.blackilykat.menubar.playback;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.Main;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
@@ -75,7 +76,7 @@ public class ChangeSessionMenu extends JMenu {
                     oldTrack.pcmData = null;
                 }
                 if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
-                    session.recalculatePosition();
+                    session.recalculatePosition(Instant.now());
                 }
                 Audio.INSTANCE.currentSession = session;
                 Audio.INSTANCE.startPlaying(session.getCurrentTrack(), false);
@@ -86,6 +87,7 @@ public class ChangeSessionMenu extends JMenu {
                 session.setRepeat(session.getRepeat());
             }
             PlaybackSessionUpdateMessage.messageBuffer = null;
+            Main.playBarWidget.repaint();
         });
         session.registerUpdateListener(s -> {
             item.setText(getItemText(s));

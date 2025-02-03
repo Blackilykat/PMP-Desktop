@@ -23,10 +23,12 @@ package dev.blackilykat.messages;
 import com.google.gson.JsonObject;
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.Main;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
 import java.time.Instant;
 
@@ -113,7 +115,7 @@ public class PlaybackSessionUpdateMessage extends Message {
             if(position != null) {
                 session.lastSharedPosition = position;
                 session.lastSharedPositionTime = time;
-                session.recalculatePosition();
+                session.recalculatePosition(Instant.now());
             }
             if(track != null) {
                 for(Track t : Library.INSTANCE.tracks) {
@@ -132,6 +134,11 @@ public class PlaybackSessionUpdateMessage extends Message {
                 session.setRepeat(repeat);
             }
             if(playing != null) {
+                if(session != Audio.INSTANCE.currentSession) {
+                    session.recalculatePosition(time);
+                }
+                session.lastSharedPositionTime = time;
+                session.lastSharedPosition = session.getPosition();
                 session.setPlaying(playing);
             }
             if(owner != null) {
