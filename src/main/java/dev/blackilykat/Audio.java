@@ -139,6 +139,8 @@ public class Audio {
     public void setPlaying(boolean playing) {
         if (!canPlay) return;
         this.currentSession.setPlaying(playing);
+        this.currentSession.lastSharedPosition = this.currentSession.getPosition();
+        this.currentSession.lastSharedPositionTime = Instant.now();
         PlayBarWidget.setPlaying(playing);
     }
 
