@@ -144,7 +144,7 @@ public class TimeBar extends JSlider {
             currentTimeSeconds %= 60;
 
             int totalTimeSeconds;
-            if(currentTrack == null) {
+            if(currentTrack == null || currentTrack.pcmData == null) {
                 totalTimeSeconds = 0;
             } else  {
                 totalTimeSeconds = (int) (currentTrack.pcmData.length / Audio.INSTANCE.audioFormat.getFrameSize() / Audio.INSTANCE.audioFormat.getSampleRate());
