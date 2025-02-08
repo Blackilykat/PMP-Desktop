@@ -29,6 +29,7 @@ import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
+import dev.blackilykat.widgets.playbar.TimeBar;
 
 import java.time.Instant;
 
@@ -134,11 +135,26 @@ public class PlaybackSessionUpdateMessage extends Message {
                 session.setRepeat(repeat);
             }
             if(playing != null) {
-                if(session != Audio.INSTANCE.currentSession) {
-                    session.recalculatePosition(time);
+                if(position == null) {
+                    if(session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
+                        session.recalculatePosition(time);
+                    }
+
+                    session.lastSharedPosition = session.getPosition();
+
+                    if(session.getOwnerId() == ServerConnection.INSTANCE.clientId) {
+                        session.lastSharedPositionTime = Instant.now();
+                        connection.send(new PlaybackSessionUpdateMessage(sessionId, null, null, null, null, session.lastSharedPosition, null, session.lastSharedPositionTime));
+                    } else {
+                        session.lastSharedPositionTime = time;
+                        if(playing) {
+                            // can get redundant but it's fine. If I didn't set this to true the next line would be useless
+                            session.setPlaying(true);
+                            session.recalculatePosition(Instant.now());
+                        }
+                    }
                 }
-                session.lastSharedPositionTime = time;
-                session.lastSharedPosition = session.getPosition();
+
                 session.setPlaying(playing);
             }
             if(owner != null) {
@@ -146,6 +162,7 @@ public class PlaybackSessionUpdateMessage extends Message {
             }
         }
         messageBuffer = null;
+        Main.playBarWidget.repaint();
     }
 
     //@Override
