@@ -21,7 +21,9 @@
 package dev.blackilykat.parsers;
 
 import dev.blackilykat.Audio;
+import dev.blackilykat.Main;
 import dev.blackilykat.Track;
+import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.PCMProcessor;
 import org.kc7bfi.jflac.metadata.Metadata;
@@ -141,6 +143,7 @@ public class FlacFileParser implements PCMProcessor {
         System.arraycopy(parsedData, 0, currentTrack.pcmData, bytesProcessed, parsedData.length);
         bytesProcessed += parsedData.length;
         currentTrack.loaded = bytesProcessed;
+        PlayBarWidget.timeBar.repaint();
     }
 
     private static short asShort(byte a, byte b, boolean littleEndian) {
