@@ -143,7 +143,7 @@ public class FlacFileParser implements PCMProcessor {
         System.arraycopy(parsedData, 0, currentTrack.pcmData, bytesProcessed, parsedData.length);
         bytesProcessed += parsedData.length;
         currentTrack.loaded = bytesProcessed;
-        PlayBarWidget.timeBar.repaint();
+        PlayBarWidget.timeBar.update();
     }
 
     private static short asShort(byte a, byte b, boolean littleEndian) {

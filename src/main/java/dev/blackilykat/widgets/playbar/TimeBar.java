@@ -31,10 +31,16 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
+import java.time.Instant;
 
 public class TimeBar extends JSlider {
+    private static final int FRAMERATE_CAP = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode().getRefreshRate();
+    private static final long FRAMETIME_CAP_MS = (long) ((1.0 / FRAMERATE_CAP) * 1000);
+    private Instant lastRepainted = null;
+
     @Override
     public int getValue() {
         return Audio.INSTANCE.currentSession.getPosition();
@@ -58,7 +64,11 @@ public class TimeBar extends JSlider {
     }
 
     public void update() {
-        repaint();
+        Instant now = Instant.now();
+        if(lastRepainted == null || lastRepainted.plusMillis(FRAMETIME_CAP_MS).isBefore(now)) {
+            repaint();
+            lastRepainted = now;
+        }
     }
 
     @Override
