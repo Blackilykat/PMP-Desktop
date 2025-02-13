@@ -62,6 +62,7 @@ public class PlaybackSessionCreateMessage extends Message {
 
     @Override
     public void handle(ServerConnection connection) {
+        boolean shouldCreate = true;
         if(requestId != null) {
             for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
                 if(session.id != requestId) continue;
@@ -71,9 +72,11 @@ public class PlaybackSessionCreateMessage extends Message {
                 if(session.getOwnerId() == connection.clientId) {
                     connection.send(new PlaybackSessionUpdateMessage(responseId, null, null, null, null, null, connection.clientId, null));
                 }
+                shouldCreate = false;
                 break;
             }
-        } else {
+        }
+        if(shouldCreate) {
             PlaybackSession session = new PlaybackSession(Library.INSTANCE, responseId);
             session.acknowledgedByServer = true;
             session.register();

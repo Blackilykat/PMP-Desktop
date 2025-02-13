@@ -33,6 +33,7 @@ import java.util.Stack;
 public class PlaybackSession {
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
     private static final List<SessionListener> registerListeners = new ArrayList<>();
+    private final List<SessionListener> unregisterListeners = new ArrayList<>();
 
     private final Library library;
     private Random random = new Random();
@@ -120,6 +121,11 @@ public class PlaybackSession {
         registerListeners.forEach(l -> l.run(this));
     }
 
+    public void unregister() {
+        availableSessions.remove(this);
+        unregisterListeners.forEach(l -> l.run(this));
+    }
+
     public void registerUpdateListener(SessionListener listener) {
         updateListeners.add(listener);
     }
@@ -134,6 +140,9 @@ public class PlaybackSession {
 
     public static void registerRegisterListener(SessionListener listener) {
         registerListeners.add(listener);
+    }
+    public void registerUnregisterListener(SessionListener listener) {
+        unregisterListeners.add(listener);
     }
 
     public interface SessionListener {

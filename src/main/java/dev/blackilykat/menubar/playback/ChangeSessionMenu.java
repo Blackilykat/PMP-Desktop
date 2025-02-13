@@ -98,6 +98,9 @@ public class ChangeSessionMenu extends JMenu {
             }
         });
         this.add(item);
+        session.registerUnregisterListener(s -> {
+            this.remove(item);
+        });
     }
 
     private static String getItemText(PlaybackSession session) {
