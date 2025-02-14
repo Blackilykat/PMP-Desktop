@@ -23,6 +23,7 @@ package dev.blackilykat.messages;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
@@ -52,34 +53,72 @@ public class PlaybackSessionListMessage extends Message {
     }
 
     @Override
-    public void handle(ServerConnection client) {
-        PlaybackSession[] existingSessions = PlaybackSession.getAvailableSessions();
-        for(PlaybackSession existingSession : existingSessions) {
-            boolean stillExists = false;
-            for(PlaybackSessionElement listedSession : this.sessions) {
-                if(existingSession.id == listedSession.id) {
-                    stillExists = true;
-                    applyToPlaybackSession(existingSession, listedSession);
-                }
-            }
-            if(!stillExists) {
-                existingSession.unregister();
-            }
-        }
-
-        for(PlaybackSessionElement listedSession : this.sessions) {
-            boolean existed = false;
+    public void handle(ServerConnection connection) {
+        if(!this.sessions.isEmpty()) {
+            PlaybackSession[] existingSessions = PlaybackSession.getAvailableSessions();
             for(PlaybackSession existingSession : existingSessions) {
-                if(existingSession.id == listedSession.id) {
-                    existed = true;
-                    break;
+                boolean stillExists = false;
+                for(PlaybackSessionElement listedSession : this.sessions) {
+                    if(existingSession.id == listedSession.id) {
+                        stillExists = true;
+                        applyToPlaybackSession(existingSession, listedSession);
+                    }
+                }
+                if(!stillExists) {
+                    existingSession.unregister();
                 }
             }
-            if(!existed) {
-                PlaybackSession session = new PlaybackSession(Library.INSTANCE, listedSession.id);
-                applyToPlaybackSession(session, listedSession);
-                session.register();
+            boolean shouldReselect = PlaybackSession.getAvailableSessions().length == 0;
+
+            for(PlaybackSessionElement listedSession : this.sessions) {
+                boolean existed = false;
+                for(PlaybackSession existingSession : existingSessions) {
+                    if(existingSession.id == listedSession.id) {
+                        existed = true;
+                        break;
+                    }
+                }
+                if(!existed) {
+                    PlaybackSession session = new PlaybackSession(Library.INSTANCE, listedSession.id);
+                    applyToPlaybackSession(session, listedSession);
+                    session.register();
+                }
             }
+
+            if(shouldReselect) {
+                PlaybackSession toSelect = null;
+                int highestRanking = -1;
+                for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
+                    int currentRanking;
+                    if(session.getOwnerId() != -1) {
+                        if(session.getPlaying()) {
+                            currentRanking = 5;
+                        } else if(session.getCurrentTrack() != null) {
+                            currentRanking = 4;
+                        } else {
+                            currentRanking = 3;
+                        }
+                    } else {
+                        // this case is very unlikely to happen and is probably unwanted, but it's currently possible so it should be handled
+                        if(session.getPlaying()) {
+                            currentRanking = 2;
+                        } else if(session.getCurrentTrack() != null) {
+                            currentRanking = 1;
+                        } else {
+                            currentRanking = 0;
+                        }
+                    }
+                    if(currentRanking > highestRanking) {
+                        toSelect = session;
+                        highestRanking = currentRanking;
+                    }
+                }
+                assert toSelect != null;
+                Audio.INSTANCE.setCurrentSession(toSelect);
+            }
+        } else {
+            connection.send(new PlaybackSessionCreateMessage(0, null));
+            Audio.INSTANCE.currentSession.setOwnerId(connection.clientId);
         }
     }
 
@@ -95,6 +134,7 @@ public class PlaybackSessionListMessage extends Message {
         session.setShuffle(element.shuffle);
         session.setRepeat(element.repeat);
         session.setPlaying(element.playing);
+        session.setOwnerId(element.owner);
         session.lastSharedPosition = element.lastPositionUpdate;
         session.lastSharedPositionTime = element.lastUpdateTime;
         session.recalculatePosition(Instant.now());

@@ -71,15 +71,6 @@ public class Audio {
     public Audio(Library library) {
         currentSession = new PlaybackSession(library, 0);
         currentSession.register();
-        if (ServerConnection.INSTANCE != null) {
-            ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(0, null));
-            currentSession.setOwnerId(ServerConnection.INSTANCE.clientId);
-        }
-        ServerConnection.addConnectListener(conn -> {
-            ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(0, null));
-            if (currentSession.getOwnerId() == -1)
-                currentSession.setOwnerId(conn.clientId);
-        });
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
             sourceDataLine.open(audioFormat, 2200);
@@ -142,6 +133,37 @@ public class Audio {
         this.currentSession.lastSharedPosition = this.currentSession.getPosition();
         this.currentSession.lastSharedPositionTime = Instant.now();
         PlayBarWidget.setPlaying(playing);
+    }
+
+    public void setCurrentSession(PlaybackSession session) {
+        if(this.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
+            this.currentSession.setOwnerId(-1);
+        }
+        if(session.getOwnerId() == -1 && ServerConnection.INSTANCE != null) {
+            session.setOwnerId(ServerConnection.INSTANCE.clientId);
+        }
+
+        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
+                null, null, null, null, Instant.now());
+        // avoid changing stuff null WHILE it's processing
+        synchronized(this.audioLock) {
+            Track oldTrack = this.currentSession.getCurrentTrack();
+            if(oldTrack != null) {
+                oldTrack.pcmData = null;
+            }
+            if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
+                session.recalculatePosition(Instant.now());
+            }
+            this.currentSession = session;
+            this.startPlaying(session.getCurrentTrack(), false);
+            this.setPlaying(session.getPlaying());
+
+            // update icons
+            session.setShuffle(session.getShuffle());
+            session.setRepeat(session.getRepeat());
+        }
+        PlaybackSessionUpdateMessage.messageBuffer = null;
+        Main.playBarWidget.repaint();
     }
 
     public static class AudioPlayingThread extends Thread {

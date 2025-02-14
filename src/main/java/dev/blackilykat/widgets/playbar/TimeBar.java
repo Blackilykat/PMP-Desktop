@@ -60,7 +60,9 @@ public class TimeBar extends JSlider {
     @Override
     public int getMaximum() {
         Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
-        return currentTrack == null ? 0 : currentTrack.pcmData.length;
+        if(currentTrack == null) return 0;
+        if(currentTrack.pcmData == null) return 0;
+        return currentTrack.pcmData.length;
     }
 
     public void update() {

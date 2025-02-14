@@ -60,34 +60,7 @@ public class ChangeSessionMenu extends JMenu {
         JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
             System.out.println("Switching to session " + session.toString());
-            if(Audio.INSTANCE.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
-                Audio.INSTANCE.currentSession.setOwnerId(-1);
-            }
-            if(session.getOwnerId() == -1 && ServerConnection.INSTANCE != null) {
-                session.setOwnerId(ServerConnection.INSTANCE.clientId);
-            }
-
-            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
-                    null, null, null, null, Instant.now());
-            // avoid changing stuff null WHILE it's processing
-            synchronized(Audio.INSTANCE.audioLock) {
-                Track oldTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
-                if(oldTrack != null) {
-                    oldTrack.pcmData = null;
-                }
-                if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
-                    session.recalculatePosition(Instant.now());
-                }
-                Audio.INSTANCE.currentSession = session;
-                Audio.INSTANCE.startPlaying(session.getCurrentTrack(), false);
-                Audio.INSTANCE.setPlaying(session.getPlaying());
-
-                // update icons
-                session.setShuffle(session.getShuffle());
-                session.setRepeat(session.getRepeat());
-            }
-            PlaybackSessionUpdateMessage.messageBuffer = null;
-            Main.playBarWidget.repaint();
+            Audio.INSTANCE.setCurrentSession(session);
         });
         session.registerUpdateListener(s -> {
             item.setText(getItemText(s));
