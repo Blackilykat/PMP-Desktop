@@ -79,7 +79,7 @@ public class PlaybackSessionListMessage extends Message {
                     }
                 }
                 if(!existed) {
-                    PlaybackSession session = new PlaybackSession(Library.INSTANCE, listedSession.id);
+                    PlaybackSession session = new PlaybackSession(Audio.INSTANCE, listedSession.id);
                     applyToPlaybackSession(session, listedSession);
                     session.register();
                 }

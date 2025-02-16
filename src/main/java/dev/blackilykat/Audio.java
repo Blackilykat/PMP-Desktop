@@ -68,8 +68,11 @@ public class Audio {
     ThreadPoolExecutor songLoadingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     Future<?> latestSongLoadingFuture;
 
+    public final Library library;
+
     public Audio(Library library) {
-        currentSession = new PlaybackSession(library, 0);
+        this.library = library;
+        currentSession = new PlaybackSession(this, 0);
         currentSession.register();
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
@@ -166,6 +169,18 @@ public class Audio {
         Main.playBarWidget.repaint();
     }
 
+    public void nextTrack() {
+        if(currentSession == null) return;
+        Track next = currentSession.nextTrack();
+        if(next != null) startPlaying(next, true);
+    }
+
+    public void previousTrack() {
+        if(currentSession == null) return;
+        Track previous = currentSession.previousTrack();
+        if(previous != null) startPlaying(previous, true);
+    }
+
     public static class AudioPlayingThread extends Thread {
 
         private final Audio audio;
@@ -202,9 +217,7 @@ public class Audio {
                     synchronized(audio.audioLock) {
 
                         if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - 4) {
-                            audio.setPlaying(false);
-                            audio.currentSession.nextTrack();
-                            audio.startPlaying(audio.currentSession.getCurrentTrack(), true);
+                            audio.nextTrack();
                             continue;
                         }
 

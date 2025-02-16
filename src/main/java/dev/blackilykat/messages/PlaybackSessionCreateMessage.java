@@ -21,6 +21,7 @@
 package dev.blackilykat.messages;
 
 import com.google.gson.JsonObject;
+import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
@@ -77,7 +78,7 @@ public class PlaybackSessionCreateMessage extends Message {
             }
         }
         if(shouldCreate) {
-            PlaybackSession session = new PlaybackSession(Library.INSTANCE, responseId);
+            PlaybackSession session = new PlaybackSession(Audio.INSTANCE, responseId);
             session.acknowledgedByServer = true;
             session.register();
         }

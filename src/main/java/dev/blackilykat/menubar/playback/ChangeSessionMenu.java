@@ -36,12 +36,15 @@ import javax.swing.JMenuItem;
 
 public class ChangeSessionMenu extends JMenu {
     private int counter = 0;
-    public ChangeSessionMenu() {
+    public final Audio audio;
+    public ChangeSessionMenu(Audio audio) {
         super("Change session");
+
+        this.audio = audio;
 
         JMenuItem createSessionItem = new JMenuItem("Create session");
         createSessionItem.addActionListener(e -> {
-            PlaybackSession session = new PlaybackSession(Library.INSTANCE, ++counter);
+            PlaybackSession session = new PlaybackSession(audio, ++counter);
             session.register();
             if(ServerConnection.INSTANCE != null) {
                 ServerConnection.INSTANCE.send(new PlaybackSessionCreateMessage(counter, null));
@@ -60,7 +63,7 @@ public class ChangeSessionMenu extends JMenu {
         JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
             System.out.println("Switching to session " + session.toString());
-            Audio.INSTANCE.setCurrentSession(session);
+            audio.setCurrentSession(session);
         });
         session.registerUpdateListener(s -> {
             item.setText(getItemText(s));

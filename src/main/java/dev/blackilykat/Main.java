@@ -113,7 +113,7 @@ public class Main {
             menuBar.add(connectionMenu);
 
             JMenu playbackmenu = new JMenu("Playback");
-            playbackmenu.add(new ChangeSessionMenu());
+            playbackmenu.add(new ChangeSessionMenu(Audio.INSTANCE));
             menuBar.add(playbackmenu);
             mainWindow.setJMenuBar(menuBar);
 

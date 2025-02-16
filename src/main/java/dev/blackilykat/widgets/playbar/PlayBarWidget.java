@@ -119,18 +119,10 @@ public class PlayBarWidget extends Widget {
             });
         });
         nextTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.nextTrack();
-            Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
-            if(currentTrack != null) {
-                Audio.INSTANCE.startPlaying(currentTrack, true);
-            }
+            Audio.INSTANCE.nextTrack();
         });
         previousTrackButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.previousTrack();
-            Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
-            if(currentTrack != null) {
-                Audio.INSTANCE.startPlaying(currentTrack, true);
-            }
+            Audio.INSTANCE.previousTrack();
         });
     }
 }

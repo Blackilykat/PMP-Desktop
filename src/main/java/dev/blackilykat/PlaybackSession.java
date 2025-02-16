@@ -31,11 +31,11 @@ import java.util.Random;
 import java.util.Stack;
 
 public class PlaybackSession {
+    public Audio audio;
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
     private static final List<SessionListener> registerListeners = new ArrayList<>();
     private final List<SessionListener> unregisterListeners = new ArrayList<>();
 
-    private final Library library;
     private Random random = new Random();
 
     private Stack<Track> previousTracks = new Stack<>();
@@ -63,8 +63,8 @@ public class PlaybackSession {
 
     public boolean acknowledgedByServer = false;
 
-    public PlaybackSession(Library library, int id) {
-        this.library = library;
+    public PlaybackSession(Audio audio, int id) {
+        this.audio = audio;
         this.id = id;
         playing = false;
         position = 0;
@@ -149,8 +149,8 @@ public class PlaybackSession {
         void run(PlaybackSession session);
     }
 
-    public void nextTrack() {
-        if(library.filteredTracks.isEmpty()) return;
+    public Track nextTrack() {
+        if(audio.library.filteredTracks.isEmpty()) return null;
         if(currentTrack != null) {
             previousTracks.push(currentTrack);
         }
@@ -160,17 +160,24 @@ public class PlaybackSession {
             nextTracks.push(next);
         }
         this.callUpdateListeners();
+        return currentTrack;
     }
 
-    public void previousTrack() {
-        if(previousTracks.isEmpty()) return;
+    public Track previousTrack() {
+        if(previousTracks.isEmpty()) return null;
         if(currentTrack != null) {
             nextTracks.push(currentTrack);
         }
         currentTrack = previousTracks.pop();
         this.callUpdateListeners();
+        return currentTrack;
     }
 
+    /**
+     * Sets the current track. <br/>
+     * <b>Do not use this directly if this is the current track.</b> Use {@link Audio#startPlaying} instead. <br/>
+     * If used incorrectly, this will select a track without loading it.
+     */
     public void setCurrentTrack(Track track) {
         if(currentTrack != null) {
             previousTracks.push(currentTrack);
@@ -224,29 +231,22 @@ public class PlaybackSession {
     }
 
     private Track pickNext() {
-        System.out.println("Filtered tracks size: " + library.filteredTracks.size());
-        System.out.println("First filtered track: " + library.filteredTracks.getFirst());
-        System.out.println("Last filtered track: " + library.filteredTracks.getLast());
-        System.out.println("Current track: " + currentTrack);
-        System.out.println("Shuffle: " + shuffle);
-        System.out.println("Repeat: " + repeat);
-        if(library.filteredTracks.isEmpty()) return null;
+        if(audio.library.filteredTracks.isEmpty()) return null;
         if(currentTrack == null) {
             if(shuffle == ShuffleOption.ON) {
-                return library.filteredTracks.get(random.nextInt(library.filteredTracks.size()));
+                return audio.library.filteredTracks.get(random.nextInt(audio.library.filteredTracks.size()));
             } else {
-                return library.filteredTracks.getFirst();
+                return audio.library.filteredTracks.getFirst();
             }
         } else {
             if(repeat == RepeatOption.TRACK) {
                 return currentTrack;
             } else if(shuffle == ShuffleOption.ON) {
-                return library.filteredTracks.get(random.nextInt(library.filteredTracks.size()));
-            } else if(library.filteredTracks.getLast() != currentTrack) {
-                return library.filteredTracks.get(library.filteredTracks.indexOf(currentTrack) + 1);
-                //  == is intentional
-            } else if(library.filteredTracks.getLast() == currentTrack && repeat == RepeatOption.ALL) {
-                return library.filteredTracks.getFirst();
+                return audio.library.filteredTracks.get(random.nextInt(audio.library.filteredTracks.size()));
+            } else if(audio.library.filteredTracks.getLast() != currentTrack) {
+                return audio.library.filteredTracks.get(audio.library.filteredTracks.indexOf(currentTrack) + 1);
+            } else if(audio.library.filteredTracks.getLast() == currentTrack && repeat == RepeatOption.ALL) {
+                return audio.library.filteredTracks.getFirst();
             }
         }
         return null;
