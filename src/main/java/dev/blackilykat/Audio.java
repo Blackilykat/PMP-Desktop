@@ -24,6 +24,13 @@ import dev.blackilykat.messages.PlaybackSessionCreateMessage;
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.parsers.FlacFileParser;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
+import org.freedesktop.dbus.DBusPath;
+import org.freedesktop.dbus.exceptions.DBusException;
+import org.mpris.MPRISMP2None;
+import org.mpris.MPRISMediaPlayer;
+import org.mpris.Metadata;
+import org.mpris.mpris.LoopStatus;
+import org.mpris.mpris.PlaybackStatus;
 
 import java.io.File;
 import java.time.Instant;
@@ -70,6 +77,8 @@ public class Audio {
 
     public final Library library;
 
+    public final MPRISMP2None mpris;
+
     public Audio(Library library) {
         this.library = library;
         currentSession = new PlaybackSession(this, 0);
@@ -86,6 +95,8 @@ public class Audio {
             canPlay = false;
             System.out.println("Can't play!");
         }
+
+        mpris = maybeCreateMprisInstance();
     }
 
     public void startPlaying(Track track, boolean reset) {
@@ -258,5 +269,92 @@ public class Audio {
 
     public static boolean isSupported(File file) {
         return file.getName().endsWith(".flac");
+    }
+
+    public MPRISMP2None maybeCreateMprisInstance() {
+        MPRISMP2None toReturn;
+        try {
+            MPRISMediaPlayer mprisMediaPlayer = new MPRISMediaPlayer(null, "pmpdesktop");
+            toReturn = mprisMediaPlayer.buildMPRISMediaPlayer2None(
+                    new MPRISMediaPlayer.MediaPlayer2Builder()
+                            .setIdentity("PMP Desktop"),
+                    new MPRISMediaPlayer.PlayerBuilder()
+                            .setPlaybackStatus(PlaybackStatus.STOPPED)
+                            .setLoopStatus(LoopStatus.NONE)
+                            .setRate(1.0)
+                            .setShuffle(false)
+                            .setMetadata(new Metadata.Builder().setTrackID(new DBusPath("/")).setLength(0).build())
+                            .setVolume(1.0)
+                            .setPosition(0)
+                            .setMinimumRate(1.0)
+                            .setMaximumRate(1.0)
+                            .setCanGoNext(true)
+                            .setCanGoPrevious(true)
+                            .setCanPlay(true)
+                            .setCanPause(true)
+                            .setCanSeek(true)
+                            .setCanControl(true)
+                            .setOnPlayPause(value -> {
+                                if(currentSession == null) {
+                                    throw new IllegalStateException();
+                                }
+                                currentSession.setPlaying(!currentSession.getPlaying());
+                            })
+                            .setOnPlay(value -> {
+                                if(currentSession == null) {
+                                    throw new IllegalStateException();
+                                }
+                                currentSession.setPlaying(true);
+                            })
+                            .setOnPause(value -> {
+                                if(currentSession == null) {
+                                    throw new IllegalStateException();
+                                }
+                                currentSession.setPlaying(false);
+                            })
+                            .setOnNext(value -> {
+                                if(currentSession == null) {
+                                    throw new IllegalStateException();
+                                }
+                                this.nextTrack();
+                            })
+                            .setOnPrevious(value -> {
+                                if(currentSession == null) {
+                                    throw new IllegalStateException();
+                                }
+                                this.previousTrack();
+                            })
+            );
+            mprisMediaPlayer.create();
+            PlaybackSession.SessionListener listener = session -> {
+                if(session.audio.currentSession != session) return;
+                MPRISMP2None mpris = session.audio.mpris;
+
+                try {
+
+                    // PLAYBACK STATUS
+                    if(session.getCurrentTrack() == null) {
+                        mpris.setPlaybackStatus(PlaybackStatus.STOPPED);
+                    } else if(session.getPlaying()) {
+                        mpris.setPlaybackStatus(PlaybackStatus.PLAYING);
+                    } else {
+                        mpris.setPlaybackStatus(PlaybackStatus.PAUSED);
+                    }
+
+                } catch(DBusException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+
+            for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
+                session.registerUpdateListener(listener);
+            }
+            PlaybackSession.registerRegisterListener(session -> {
+                session.registerUpdateListener(listener);
+            });
+        } catch(DBusException e) {
+            return null;
+        }
+        return toReturn;
     }
 }
