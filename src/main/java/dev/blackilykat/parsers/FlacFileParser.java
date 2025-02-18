@@ -71,6 +71,10 @@ public class FlacFileParser implements PCMProcessor {
         }
         this.streamInfo = streamInfo;
         System.out.println("Streaminfo: " + streamInfo.toString());
+
+        if(audio.currentSession != null) {
+            audio.currentSession.callUpdateListeners();
+        }
     }
 
 

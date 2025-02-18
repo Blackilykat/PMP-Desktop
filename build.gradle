@@ -16,7 +16,7 @@ dependencies {
     implementation 'org.apache.xmlgraphics:batik-all:1.17'
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.h2database:h2:2.3.232'
-    implementation 'com.github.Blackilykat:mpris-java:59e017b4bb'
+    implementation 'com.github.Blackilykat:mpris-java:c5190bd'
 }
 
 test {

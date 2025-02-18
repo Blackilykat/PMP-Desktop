@@ -130,7 +130,6 @@ public class Audio {
                     reloadSong();
                     PlayBarWidget.timeBar.setMinimum(0);
                     PlayBarWidget.timeBar.setMaximum(track.pcmData.length);
-                    currentSession.callUpdateListeners();
                 } else {
                     PlayBarWidget.timeBar.setMinimum(0);
                     PlayBarWidget.timeBar.setMaximum(0);
@@ -239,6 +238,12 @@ public class Audio {
                         }
 
                         PlayBarWidget.timeBar.update();
+                        if(audio.mpris != null) {
+                            try {
+                                double positionSeconds = audio.currentSession.getPosition() / audio.audioFormat.getSampleRate() / audio.audioFormat.getChannels() / audio.audioFormat.getSampleSizeInBits() * 8.0;
+                                audio.mpris.setPosition((int) (positionSeconds * 1_000_000));
+                            } catch(DBusException ignored) {}
+                        }
 
                         for (int i = 0; i < bufferSize - 3 &&
                                 i + audio.currentSession.getPosition() < currentTrack.pcmData.length - 3; i += 4) {
@@ -369,7 +374,7 @@ public class Audio {
                     // PLAYBACK STATUS
                     if(track == null) {
                         mpris.setPlaybackStatus(PlaybackStatus.STOPPED);
-                    } else if(session.getPlaying()) {
+                    } else if(session.getPlaying() && track.pcmData != null) {
                         mpris.setPlaybackStatus(PlaybackStatus.PLAYING);
                     } else {
                         mpris.setPlaybackStatus(PlaybackStatus.PAUSED);
