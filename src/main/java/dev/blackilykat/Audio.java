@@ -23,6 +23,7 @@ package dev.blackilykat;
 import dev.blackilykat.messages.PlaybackSessionCreateMessage;
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.parsers.FlacFileParser;
+import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.exceptions.DBusException;
@@ -34,6 +35,10 @@ import org.mpris.mpris.PlaybackStatus;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -125,6 +130,7 @@ public class Audio {
                     reloadSong();
                     PlayBarWidget.timeBar.setMinimum(0);
                     PlayBarWidget.timeBar.setMaximum(track.pcmData.length);
+                    currentSession.callUpdateListeners();
                 } else {
                     PlayBarWidget.timeBar.setMinimum(0);
                     PlayBarWidget.timeBar.setMaximum(0);
@@ -332,8 +338,36 @@ public class Audio {
 
                 try {
 
+                    Track track = session.getCurrentTrack();
+
+                    if(track != null) {
+                        //METADATA
+                        Map<String, List<String>> metadataMap = new HashMap<>();
+                        for(Pair<String, String> metadatum : track.metadata) {
+                            List<String> existingList = metadataMap.get(metadatum.key);
+                            if(existingList == null) {
+                                metadataMap.put(metadatum.key, new ArrayList<>(List.of(metadatum.value)));
+                            } else {
+                                existingList.add(metadatum.value);
+                            }
+                        }
+                        double seconds;
+                        if(track.pcmData != null) {
+                            seconds = track.pcmData.length / audioFormat.getSampleRate() / audioFormat.getChannels() / audioFormat.getSampleSizeInBits() * 8.0;
+                        } else {
+                            seconds = 0;
+                        }
+                        mpris.setMetadata(new Metadata.Builder()
+                                .setTrackID(new DBusPath("/PMPDesktop/" + track.getFile().getName().replace(".flac", "")))
+                                .setLength((int) (seconds * 1_000_000))
+                                .setArtURL(track.getFile().toURI())
+                                // I am genuinely sorry for this. I blame java. fuck you java.
+                                .setXesamMetadata((Map<String, List<?>>) (Map<?, ?>) metadataMap)
+                                .build());
+                    }
+
                     // PLAYBACK STATUS
-                    if(session.getCurrentTrack() == null) {
+                    if(track == null) {
                         mpris.setPlaybackStatus(PlaybackStatus.STOPPED);
                     } else if(session.getPlaying()) {
                         mpris.setPlaybackStatus(PlaybackStatus.PLAYING);
@@ -342,7 +376,7 @@ public class Audio {
                     }
 
                 } catch(DBusException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
                 }
             };
 

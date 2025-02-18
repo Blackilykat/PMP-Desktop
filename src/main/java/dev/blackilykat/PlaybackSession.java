@@ -184,7 +184,6 @@ public class PlaybackSession {
         }
         currentTrack = track;
         reloadNext();
-        this.callUpdateListeners();
     }
 
     public Track getCurrentTrack() {
