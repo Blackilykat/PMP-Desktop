@@ -35,6 +35,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Contains a list of all sessions that currently exist. When the server sends this, clients must ensure their session
+ * list is identical to the one contained in this message, whether that's by removing, adding or modifying its existing
+ * session list. If clients need a session to keep existing regardless of whether it was previously on the server,
+ * they can keep it and send a {@link PlaybackSessionCreateMessage}, ensuring there is no mismatching information
+ * between the client and the server.
+ */
 public class PlaybackSessionListMessage extends Message {
     public static final String MESSAGE_TYPE = "PLAYBACK_SESSION_LIST";
     public List<PlaybackSessionElement> sessions = new ArrayList<>();
