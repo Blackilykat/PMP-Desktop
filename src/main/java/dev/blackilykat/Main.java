@@ -133,7 +133,7 @@ public class Main {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
             ServerConnection.INSTANCE.start();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("Could not connect to server!");
         }
     }
 }
