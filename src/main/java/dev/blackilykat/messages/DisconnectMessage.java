@@ -56,7 +56,7 @@ public class DisconnectMessage extends Message {
 
     @Override
     public void handle(ServerConnection connection) {
-        connection.disconnect();
+        connection.disconnect(reconnectIn * 1000L);
     }
 
     //@Override

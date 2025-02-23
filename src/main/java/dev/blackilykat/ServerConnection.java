@@ -52,10 +52,15 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ServerConnection {
+    public static final int DEFAULT_RECONNECT_TIMEOUT_SECONDS = 5000;
+    public static final Timer RETRY_TIMER = new Timer("Server reconnect attempt timer");
+
     public static ServerConnection INSTANCE;
     private static List<ConnectionListener> onConnectListeners = new ArrayList<>();
     private static List<ConnectionListener> onDisconnectListeners = new ArrayList<>();
@@ -117,9 +122,14 @@ public class ServerConnection {
         } catch(NoSuchAlgorithmException | KeyManagementException e) {
             throw new RuntimeException(e);
         }
-        this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(InetAddress.getByName(ip), mainPort);
-        this.inputStream = socket.getInputStream();
-        this.outputStream = socket.getOutputStream();
+        try {
+            this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(InetAddress.getByName(ip), mainPort);
+            this.inputStream = socket.getInputStream();
+            this.outputStream = socket.getOutputStream();
+        } catch(IOException e) {
+            disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
+            throw e;
+        }
     }
 
     public void start() {
@@ -127,15 +137,26 @@ public class ServerConnection {
         inputReadingThread.start();
     }
 
-    public void disconnect() {
+    public void disconnect(long reconnectInMilliseconds) {
         System.out.println("Disconnecting from server!");
         connected = false;
         messageSendingThread.interrupt();
         inputReadingThread.interrupt();
         try {
             socket.close();
-        } catch (IOException ignored) {}
+        } catch (IOException | NullPointerException ignored) {}
         callDisconnectListeners(this);
+        if(reconnectInMilliseconds >= 0) {
+            RETRY_TIMER.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
+                        ServerConnection.INSTANCE.start();
+                    } catch(IOException ignored) {}
+                }
+            }, reconnectInMilliseconds);
+        }
     }
 
     public void send(Message message) {
@@ -250,7 +271,7 @@ public class ServerConnection {
                 throw new RuntimeException(e);
             } catch (InterruptedException ignored) {
             } finally {
-                if(connected) disconnect();
+                if(connected) disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             }
         }
     }
@@ -318,7 +339,7 @@ public class ServerConnection {
                 if(!connected) return;
                 throw new RuntimeException(e);
             } finally {
-                if(connected) disconnect();
+                if(connected) disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             }
         }
     }

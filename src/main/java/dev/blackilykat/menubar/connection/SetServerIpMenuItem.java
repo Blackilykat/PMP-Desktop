@@ -67,7 +67,7 @@ public class SetServerIpMenuItem extends JMenuItem {
                     Storage.setServerFilePort(filePort);
 
                     if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
-                        ServerConnection.INSTANCE.disconnect();
+                        ServerConnection.INSTANCE.disconnect(-1);
                     }
                     ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
                     ServerConnection.INSTANCE.start();

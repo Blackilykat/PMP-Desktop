@@ -30,7 +30,7 @@ public class DisconnectFromServerMenuItem extends JMenuItem {
         this.setEnabled(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected);
         this.addActionListener(e -> {
             if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
-                ServerConnection.INSTANCE.disconnect();
+                ServerConnection.INSTANCE.disconnect(-1);
             }
         });
         ServerConnection.addConnectListener(connection -> {
