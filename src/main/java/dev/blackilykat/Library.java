@@ -25,7 +25,6 @@ import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.filters.LibraryFilterPanel;
 import dev.blackilykat.widgets.tracklist.Order;
 import dev.blackilykat.widgets.tracklist.TrackDataEntry;
-import dev.blackilykat.widgets.tracklist.TrackPanel;
 import org.kc7bfi.jflac.FLACDecoder;
 import org.kc7bfi.jflac.metadata.Metadata;
 import org.kc7bfi.jflac.metadata.VorbisComment;
@@ -34,10 +33,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
@@ -49,7 +46,7 @@ public class Library {
     public boolean loaded = false;
 
     public Library() {
-        this.reload();
+        this.reloadAll();
         // shutdown hook for saving is in Storage to avoid race conditions when closing the db
         Map<String, Map<String, LibraryFilterOption.State>> storedFilters = Storage.getFilters();
         System.out.println(storedFilters);
@@ -79,7 +76,7 @@ public class Library {
         }
     }
 
-    public synchronized void reload() {
+    public synchronized void reloadTracks() {
         loaded = false;
         tracks = new ArrayList<>();
         for(File result : search(Storage.LIBRARY)) {
@@ -102,7 +99,16 @@ public class Library {
         synchronized(this) {
             notifyAll();
         }
+    }
 
+    public synchronized void reloadAll() {
+        reloadTracks();
+        reloadOptions();
+        reloadFilters();
+        reloadSorting();
+    }
+
+    public void reloadOptions() {
         if(Main.libraryFiltersWidget != null) {
             for(LibraryFilterPanel panel : Main.libraryFiltersWidget.panels) {
                 LibraryFilterOption[] oldOptions = panel.filter.getOptions();
@@ -114,29 +120,6 @@ public class Library {
                 }
             }
         }
-
-        reloadFilters();
-        if(Main.songListWidget != null) {
-            //TODO make reloadSorting not depend on the GUI elements so it doesn't have to reload this twice
-            Main.songListWidget.refreshTracks();
-            reloadSorting();
-            Main.songListWidget.refreshTracks();
-        }
-        if(Main.libraryFiltersWidget != null) {
-            Main.libraryFiltersWidget.reloadElements();
-        }
-    }
-
-    private List<File> search(File path) {
-        if(!path.isDirectory()) throw new IllegalArgumentException("path " + path + " isn't a directory!");
-        ArrayList<File> results = new ArrayList<>();
-
-        for(File file : path.listFiles()) {
-            if(!file.isDirectory()) {
-                results.add(file);
-            }
-        }
-        return results;
     }
 
     public void reloadFilters() {
@@ -154,6 +137,10 @@ public class Library {
 
     public void reloadSorting() {
         if(Main.songListWidget == null || Main.songListWidget.orderingHeader == null) return;
+
+        //TODO make reloadSorting not depend on the GUI elements so it doesn't have to reload this twice
+        Main.songListWidget.refreshTracks();
+
         int dataIndex = Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader);
         final int multiplier = Main.songListWidget.order == Order.DESCENDING ? 1 : -1;
 
@@ -171,6 +158,20 @@ public class Library {
             System.out.println("Ordering " + track.title);
             filteredTracks.set(i++, track);
         }
+
+        Main.songListWidget.refreshTracks();
+    }
+
+    private List<File> search(File path) {
+        if(!path.isDirectory()) throw new IllegalArgumentException("path " + path + " isn't a directory!");
+        ArrayList<File> results = new ArrayList<>();
+
+        for(File file : path.listFiles()) {
+            if(!file.isDirectory()) {
+                results.add(file);
+            }
+        }
+        return results;
     }
 
     /**

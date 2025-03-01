@@ -104,14 +104,13 @@ public class LibraryActionMessage extends Message {
                 break;
             case REMOVE:
                 new File(Storage.LIBRARY, fileName).delete();
-                Library.INSTANCE.reload();
                 break;
             case CHANGE_METADATA:
                 // not implemented yet
                 break;
         }
         Storage.setCurrentActionID(actionId+1);
-        Library.INSTANCE.reload();
+        Library.INSTANCE.reloadAll();
 
         if(actionId == WelcomeMessage.waitingForMissedActions) {
 

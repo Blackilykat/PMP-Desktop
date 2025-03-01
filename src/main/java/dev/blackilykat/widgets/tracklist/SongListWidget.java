@@ -206,7 +206,7 @@ public class SongListWidget extends Widget {
                             ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
                         }
                     }
-                   Library.INSTANCE.reload();
+                   Library.INSTANCE.reloadAll();
 
                 } catch(IOException e) {
                     e.printStackTrace();
@@ -257,8 +257,7 @@ public class SongListWidget extends Widget {
 
                     dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50, SongListWidget.this));
                     SongListWidget.this.refreshHeaders();
-                    // kinda op.... but you won't be adding and removing headers often so it's probably fine if it's a little slow
-                    Library.INSTANCE.reload();
+                    Main.songListWidget.refreshTracks();
                 } catch(Throwable e) {
                     e.printStackTrace();
                 }

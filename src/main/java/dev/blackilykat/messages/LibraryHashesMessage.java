@@ -80,12 +80,14 @@ public class LibraryHashesMessage extends Message {
         for(Map.Entry<String, Long> entry : hashes.entrySet()) {
             boolean found = false;
             boolean matches = false;
+            long clientValue = -1;
             for(Track track : Library.INSTANCE.tracks) {
                 if(track.getFile().getName().equals(entry.getKey())) {
                     found = true;
                     if(track.checksum == entry.getValue()) {
                         matches = true;
                     }
+                    clientValue = track.checksum;
                     break;
                 }
             }
@@ -95,7 +97,7 @@ public class LibraryHashesMessage extends Message {
                 changes = true;
             } else if(!matches) {
                 //TODO handle
-                System.out.println("!!!!! NO MATCH CHECKSUM " + entry.getKey() + " !!!!");
+                System.out.println("!!!!! NO MATCH CHECKSUM " + entry.getKey() + " !!!! (server: " + entry.getValue() + ", client: " + clientValue + ")");
             }
         }
         // already checked checksums, now check for missing only
@@ -108,7 +110,7 @@ public class LibraryHashesMessage extends Message {
             }
         }
         if(changes) {
-            Library.INSTANCE.reload();
+            Library.INSTANCE.reloadAll();
         }
     }
 

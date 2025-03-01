@@ -25,23 +25,15 @@ import dev.blackilykat.Library;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.LibraryActionMessage;
-import dev.blackilykat.util.Icons;
-import dev.blackilykat.util.Pair;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Graphics;
-import java.awt.LayoutManager;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.Instant;
@@ -82,7 +74,7 @@ public class TrackPanel extends JPanel {
                 LibraryActionMessage libraryActionMessage = LibraryActionMessage.create(LibraryActionMessage.Type.REMOVE, track.getFile().getName());
                 ServerConnection.INSTANCE.send(libraryActionMessage);
                 System.out.println("Deleted track " + track.getFile().getName());
-                Library.INSTANCE.reload();
+                Library.INSTANCE.reloadAll();
             }
         });
 

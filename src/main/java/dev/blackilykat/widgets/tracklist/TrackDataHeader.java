@@ -98,7 +98,6 @@ public class TrackDataHeader {
                     songListWidget.headerPanel.repaint();
 
                     Library.INSTANCE.reloadSorting();
-                    songListWidget.refreshTracks();
                     return;
                 }
                 songListWidget.draggedHeader.width = Math.max(e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);

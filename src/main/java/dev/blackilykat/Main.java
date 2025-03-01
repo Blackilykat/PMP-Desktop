@@ -100,7 +100,7 @@ public class Main {
             Main.playBarWidget = playBarWidget;
             Main.songListWidget = songListWidget;
             Main.libraryFiltersWidget = libraryFiltersWidget;
-            Library.INSTANCE.reload();
+            songListWidget.refreshTracks();
 
             JMenuBar menuBar = new JMenuBar();
             JMenu generalMenu = new JMenu("General");
