@@ -120,15 +120,6 @@ public class Main {
             mainWindow.setVisible(true);
         });
 
-        synchronized(Library.INSTANCE) {
-            try {
-                while(!Library.INSTANCE.loaded) {
-                    Library.INSTANCE.wait();
-                }
-            } catch(InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
         try {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
             ServerConnection.INSTANCE.start();

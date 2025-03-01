@@ -95,10 +95,6 @@ public class Library {
             }
         }
         loaded = true;
-        // allow main thread to connect to server, since library is now loaded
-        synchronized(this) {
-            notifyAll();
-        }
     }
 
     public synchronized void reloadAll() {
