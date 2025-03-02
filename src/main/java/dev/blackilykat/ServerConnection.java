@@ -64,6 +64,7 @@ public class ServerConnection {
     public static ServerConnection INSTANCE;
     private static List<ConnectionListener> onConnectListeners = new ArrayList<>();
     private static List<ConnectionListener> onDisconnectListeners = new ArrayList<>();
+    public static int oldClientId = -1;
 
     public final String ip;
     public final int mainPort;
@@ -140,6 +141,9 @@ public class ServerConnection {
     public void disconnect(long reconnectInMilliseconds) {
         System.out.println("Disconnecting from server!");
         connected = false;
+        if(clientId != -1) {
+            oldClientId = clientId;
+        }
         messageSendingThread.interrupt();
         inputReadingThread.interrupt();
         try {

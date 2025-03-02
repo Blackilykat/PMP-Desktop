@@ -130,21 +130,37 @@ public class PlaybackSessionListMessage extends Message {
     }
 
     private static void applyToPlaybackSession(PlaybackSession session, PlaybackSessionElement element) {
-        Track track = null;
-        for(Track t : Library.INSTANCE.tracks) {
-            if(t.getFile().getName().equals(element.track)) {
-                track = t;
-                break;
+        assert ServerConnection.INSTANCE != null;
+        boolean allowedToOverride = session.getOwnerId() == ServerConnection.oldClientId || session.getOwnerId() == -1;
+        boolean hasNewerInfo = session.lastSharedPositionTime != null && session.lastSharedPositionTime.isAfter(element.lastUpdateTime);
+
+        if(hasNewerInfo && allowedToOverride) {
+            session.recalculatePosition(Instant.now());
+            session.setOwnerId(ServerConnection.INSTANCE.clientId);
+            PlaybackSessionUpdateMessage.doUpdate(session.id, session.getCurrentTrack().getFile().getName(), session.getShuffle(), session.getRepeat(), session.getPlaying(), session.getPosition(), ServerConnection.INSTANCE.clientId);
+        } else {
+            Track track = null;
+            for(Track t : Library.INSTANCE.tracks) {
+                if(t.getFile().getName().equals(element.track)) {
+                    track = t;
+                    break;
+                }
             }
+            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null);
+            if(Audio.INSTANCE.currentSession == session) {
+                Audio.INSTANCE.startPlaying(track, false);
+            } else {
+                session.setCurrentTrack(track);
+            }
+            session.setShuffle(element.shuffle);
+            session.setRepeat(element.repeat);
+            session.setPlaying(element.playing);
+            session.setOwnerId(element.owner);
+            session.lastSharedPosition = element.lastPositionUpdate;
+            session.lastSharedPositionTime = element.lastUpdateTime;
+            session.recalculatePosition(Instant.now());
+            PlaybackSessionUpdateMessage.messageBuffer = null;
         }
-        session.setCurrentTrack(track);
-        session.setShuffle(element.shuffle);
-        session.setRepeat(element.repeat);
-        session.setPlaying(element.playing);
-        session.setOwnerId(element.owner);
-        session.lastSharedPosition = element.lastPositionUpdate;
-        session.lastSharedPositionTime = element.lastUpdateTime;
-        session.recalculatePosition(Instant.now());
         session.acknowledgedByServer = true;
     }
 

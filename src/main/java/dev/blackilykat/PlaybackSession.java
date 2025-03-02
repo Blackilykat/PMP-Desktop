@@ -60,6 +60,7 @@ public class PlaybackSession {
     public int id;
 
     private int ownerId = -1;
+    public boolean wasOwner = false;
 
     public boolean acknowledgedByServer = false;
 
@@ -77,6 +78,8 @@ public class PlaybackSession {
     public void setPosition(int position, boolean isJump) {
         this.position = position;
         if(isJump) {
+            lastSharedPosition = position;
+            lastSharedPositionTime = Instant.now();
             PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null);
             callUpdateListeners();
         }
@@ -119,6 +122,7 @@ public class PlaybackSession {
     public void register() {
         availableSessions.add(this);
         registerListeners.forEach(l -> l.run(this));
+        ServerConnection.addDisconnectListener(c -> acknowledgedByServer = false);
     }
 
     public void unregister() {

@@ -250,10 +250,11 @@ public class Audio {
                             // RIFF is little endian...
                             int position = audio.currentSession.getPosition();
 
-                            if (ServerConnection.INSTANCE == null || (audio.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId)) {
-                                // System.out.println("AAAAAAA " + audio.currentSession.getOwnerId() + " " +
-                                // (ServerConnection.INSTANCE != null ? ServerConnection.INSTANCE.clientId :
-                                // "no"));
+                            boolean justReconnectedAndOwnedSessionBefore = !audio.currentSession.acknowledgedByServer && audio.currentSession.getOwnerId() == ServerConnection.oldClientId;
+                            boolean justCreatedSession = !audio.currentSession.acknowledgedByServer && audio.currentSession.getOwnerId() == -1;
+                            // is ServerConnection.INSTANCE is null, the client never connected to the server in the first place
+                            boolean ownsSession = ServerConnection.INSTANCE == null || audio.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId;
+                            if (ownsSession || justReconnectedAndOwnedSessionBefore || justCreatedSession) {
                                 // L
                                 buffer[i + 1] = currentTrack.pcmData[position];
                                 buffer[i] = currentTrack.pcmData[position + 1];
