@@ -22,6 +22,7 @@ package dev.blackilykat.widgets.tracklist;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.LibraryAction;
 import dev.blackilykat.Main;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
@@ -201,9 +202,10 @@ public class SongListWidget extends Widget {
                             continue;
                         }
 
-                        //TODO this is NOT a proper fix for #20
                         if(ServerConnection.INSTANCE != null) {
                             ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
+                        } else {
+                            Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
                         }
                     }
                    Library.INSTANCE.reloadAll();

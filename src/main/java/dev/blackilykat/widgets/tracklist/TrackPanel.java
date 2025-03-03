@@ -22,7 +22,9 @@ package dev.blackilykat.widgets.tracklist;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.LibraryAction;
 import dev.blackilykat.ServerConnection;
+import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.LibraryActionMessage;
 
@@ -58,10 +60,8 @@ public class TrackPanel extends JPanel {
         this.setLayout(layoutManager);
 
         this.popup = new JPopupMenu();
-        JMenuItem deleteItem = new JMenuItem("Delete");
-        this.popup.add(deleteItem);
-        this.popup.add(SongListWidget.getAddTrackPopupItem());
 
+        JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
@@ -71,12 +71,18 @@ public class TrackPanel extends JPanel {
             private void run() {
                 System.out.println("Deleting track " + track.getFile().getName());
                 track.getFile().delete();
-                LibraryActionMessage libraryActionMessage = LibraryActionMessage.create(LibraryActionMessage.Type.REMOVE, track.getFile().getName());
-                ServerConnection.INSTANCE.send(libraryActionMessage);
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                    ServerConnection.INSTANCE.send(LibraryActionMessage.create(LibraryAction.Type.REMOVE, track.getFile().getName()));
+                } else {
+                    Storage.pushPendingLibraryAction(new LibraryAction(track.getFile().getName(), LibraryAction.Type.REMOVE));
+                }
                 System.out.println("Deleted track " + track.getFile().getName());
                 Library.INSTANCE.reloadAll();
             }
         });
+        this.popup.add(deleteItem);
+
+        this.popup.add(SongListWidget.getAddTrackPopupItem());
 
         this.addMouseListener(new MouseAdapter() {
             @Override

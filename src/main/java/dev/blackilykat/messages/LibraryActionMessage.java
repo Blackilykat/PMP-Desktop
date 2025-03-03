@@ -24,6 +24,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.blackilykat.Json;
 import dev.blackilykat.Library;
+import dev.blackilykat.LibraryAction;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
@@ -42,12 +43,12 @@ import java.util.List;
 public class LibraryActionMessage extends Message {
     public static final String MESSAGE_TYPE = "LIBRARY_ACTION";
     public int actionId;
-    public Type actionType;
+    public LibraryAction.Type actionType;
     public String fileName;
     public List<Pair<String, String>> newMetadata;
 
-    public LibraryActionMessage(Type type, int actionId, String fileName) {
-        if(type == Type.CHANGE_METADATA) {
+    public LibraryActionMessage(LibraryAction.Type type, int actionId, String fileName) {
+        if(type == LibraryAction.Type.CHANGE_METADATA) {
             throw new IllegalArgumentException("Incorrect initializer: expected List<Pair<String, String>> as fourth argument for action type " + type);
         }
         this.actionType = type;
@@ -55,8 +56,8 @@ public class LibraryActionMessage extends Message {
         this.fileName = fileName;
     }
 
-    public LibraryActionMessage(Type type, int actionId, String fileName, List<Pair<String, String>> newMetadata) {
-        if(type != Type.CHANGE_METADATA) {
+    public LibraryActionMessage(LibraryAction.Type type, int actionId, String fileName, List<Pair<String, String>> newMetadata) {
+        if(type != LibraryAction.Type.CHANGE_METADATA) {
             throw new IllegalArgumentException("Incorrect initializer: expected only three arguments for action type " + type);
         }
         this.actionType = type;
@@ -75,15 +76,15 @@ public class LibraryActionMessage extends Message {
         object.addProperty("action_type", actionType.toString());
         object.addProperty("action_id", actionId);
         object.addProperty("file_name", fileName);
-        if(actionType == Type.CHANGE_METADATA) {
+        if(actionType == LibraryAction.Type.CHANGE_METADATA) {
             object.add("new_metadata", Json.GSON.toJsonTree(newMetadata));
         }
     }
 
     //@Override
     public static LibraryActionMessage fromJson(JsonObject json) throws MessageException {
-        Type type = Type.valueOf(json.get("action_type").getAsString());
-        if(type == Type.CHANGE_METADATA) {
+        LibraryAction.Type type = LibraryAction.Type.valueOf(json.get("action_type").getAsString());
+        if(type == LibraryAction.Type.CHANGE_METADATA) {
             List<Pair<String, String>> metadata = new ArrayList<>();
             for (JsonElement metadataEntry : json.get("new_metadata").getAsJsonArray()) {
                 metadata.add(new Pair<>(metadataEntry.getAsJsonObject().get("key").getAsString(),
@@ -123,38 +124,17 @@ public class LibraryActionMessage extends Message {
         }
     }
 
-    public static LibraryActionMessage create(Type type, String fileName) {
+    public static LibraryActionMessage create(LibraryAction.Type type, String fileName) {
         int id = Storage.getCurrentActionID();
         LibraryActionMessage message = new LibraryActionMessage(type, id, fileName);
         Storage.setCurrentActionID(id+1);
         return message;
     }
 
-    public static LibraryActionMessage create(Type type, String fileName, List<Pair<String, String>> newMetadata) {
+    public static LibraryActionMessage create(LibraryAction.Type type, String fileName, List<Pair<String, String>> newMetadata) {
         int id = Storage.getCurrentActionID();
         LibraryActionMessage message = new LibraryActionMessage(type, id, fileName, newMetadata);
         Storage.setCurrentActionID(id+1);
         return message;
-    }
-
-    public enum Type {
-        /**
-         * Add a new song to the library
-         */
-        ADD,
-        /**
-         * Remove a song from the library
-         */
-        REMOVE,
-        /**
-         * Replace the file of a song with another one (would be the same song, this action would only happen if like
-         * someone changes the source, say, to get a higher quality version. This action exists so that when the
-         * playback eventually gets tracked the counts don't get split or interrupted due to a file replacement)
-         */
-        REPLACE,
-        /**
-         * Change the metadata of a song while keeping the audio data untouched
-         */
-        CHANGE_METADATA
     }
 }

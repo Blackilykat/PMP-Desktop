@@ -24,11 +24,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.blackilykat.Json;
 import dev.blackilykat.Library;
+import dev.blackilykat.LibraryAction;
 import dev.blackilykat.ServerConnection;
+import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -76,6 +80,27 @@ public class LibraryHashesMessage extends Message {
             waitingToBeHandled = this;
             return;
         }
+
+        // hijacking because it needs to know which hashes from the server are gonna be outdated
+        // sending pending actions separately will either present race conditions or require an annoying request/response
+        // system which really doesn't need to exist
+        List<LibraryAction> actionsSent = new ArrayList<>();
+        LibraryAction pendingAction;
+        while((pendingAction = Storage.popPendingLibraryAction()) != null) {
+            if(pendingAction.actionType != LibraryAction.Type.ADD) {
+                LibraryActionMessage msg;
+                if(pendingAction.actionType != LibraryAction.Type.CHANGE_METADATA) {
+                    msg = LibraryActionMessage.create(pendingAction.actionType, pendingAction.fileName);
+                } else {
+                    msg = LibraryActionMessage.create(pendingAction.actionType, pendingAction.fileName, pendingAction.newMetadata);
+                }
+                connection.send(msg);
+            } else {
+                connection.sendAddTrack(pendingAction.fileName);
+            }
+            actionsSent.add(pendingAction);
+        }
+
         boolean changes = false;
         for(Map.Entry<String, Long> entry : hashes.entrySet()) {
             boolean found = false;
@@ -93,11 +118,29 @@ public class LibraryHashesMessage extends Message {
             }
             if(!found) {
                 System.out.println("Client doesnt have " + entry.getKey());
-                ServerConnection.INSTANCE.downloadTrack(entry.getKey());
-                changes = true;
+                boolean nevermind = false;
+                for(LibraryAction libraryAction : actionsSent) {
+                    if(libraryAction.actionType != LibraryAction.Type.REMOVE) continue;
+                    if(!libraryAction.fileName.equals(entry.getKey())) continue;
+                    System.out.println("Nevermind it removed it");
+                    nevermind = true;
+                    break;
+                }
+                if(!nevermind) {
+                    ServerConnection.INSTANCE.downloadTrack(entry.getKey());
+                    changes = true;
+                }
             } else if(!matches) {
                 //TODO handle
                 System.out.println("!!!!! NO MATCH CHECKSUM " + entry.getKey() + " !!!! (server: " + entry.getValue() + ", client: " + clientValue + ")");
+                boolean nevermind = false;
+                for(LibraryAction libraryAction : actionsSent) {
+                    if(libraryAction.actionType != LibraryAction.Type.REPLACE && libraryAction.actionType != LibraryAction.Type.CHANGE_METADATA) continue;
+                    if(!libraryAction.fileName.equals(entry.getKey())) continue;
+                    System.out.println("Nevermind it replaced it");
+                    nevermind = true;
+                    break;
+                }
             }
         }
         // already checked checksums, now check for missing only
@@ -105,8 +148,19 @@ public class LibraryHashesMessage extends Message {
             String name = track.getFile().getName();
             if(!hashes.containsKey(name)) {
                 System.out.println("Server doesn't have " + name);
-                ServerConnection.INSTANCE.sendAddTrack(name);
-                changes = true;
+
+                boolean nevermind = false;
+                for(LibraryAction libraryAction : actionsSent) {
+                    if(libraryAction.actionType != LibraryAction.Type.ADD) continue;
+                    if(!libraryAction.fileName.equals(name)) continue;
+                    System.out.println("Nevermind it already sent it");
+                    nevermind = true;
+                    break;
+                }
+                if(!nevermind) {
+                    ServerConnection.INSTANCE.sendAddTrack(name);
+                    changes = true;
+                }
             }
         }
         if(changes) {

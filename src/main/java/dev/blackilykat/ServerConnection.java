@@ -232,17 +232,21 @@ public class ServerConnection {
     }
 
     public void sendAddTrack(String name) {
-        LibraryActionMessage action = LibraryActionMessage.create(LibraryActionMessage.Type.ADD, name);
-        this.send(action);
-        synchronized(action) {
-            try {
-                action.wait();
-            } catch(InterruptedException e) {
-                throw new RuntimeException(e);
+        if(connected) {
+            LibraryActionMessage action = LibraryActionMessage.create(LibraryAction.Type.ADD, name);
+            this.send(action);
+            synchronized(action) {
+                try {
+                    action.wait();
+                } catch(InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            //TODO might wanna multi thread here
+            this.uploadTrack(name, action.actionId, false);
+        } else {
+            Storage.pushPendingLibraryAction(new LibraryAction(name, LibraryAction.Type.ADD));
         }
-        //TODO might wanna multi thread here
-        this.uploadTrack(name, action.actionId, false);
     }
 
     /**

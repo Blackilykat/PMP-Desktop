@@ -31,18 +31,22 @@ import java.io.File;
 import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 @SuppressWarnings("unchecked")
 public class Storage {
     public static final File LIBRARY = new File("library/");
 
     public static Map<String, Object> general;
+    private static Queue<LibraryAction> pendingLibraryActions = null;
 
     public static void init() {
         MVStore mvStore = MVStore.open("db");
         general = mvStore.openMap("general");
+        pendingLibraryActions = (Queue<LibraryAction>) general.getOrDefault("pendingLibraryActions", new LinkedList<>());
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Map<String, Map<String, LibraryFilterOption.State>> filters = new HashMap<>();
             for(LibraryFilter filter : Library.INSTANCE.filters) {
@@ -62,6 +66,8 @@ public class Storage {
 
             Storage.setSortingHeader(Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader));
             Storage.setSortingOrder(Main.songListWidget.order);
+
+            general.put("pendingLibraryActions", pendingLibraryActions);
 
             mvStore.close();
         }));
@@ -177,5 +183,13 @@ public class Storage {
             return;
         }
         general.put("serverFilePort", port);
+    }
+
+    public static void pushPendingLibraryAction(LibraryAction action) {
+        pendingLibraryActions.offer(action);
+    }
+
+    public static LibraryAction popPendingLibraryAction() {
+        return pendingLibraryActions.poll();
     }
 }

@@ -81,7 +81,6 @@ public class WelcomeMessage extends Message {
             waitingForMissedActions = latestActionId - 1;
             LibraryActionRequestMessage message = new LibraryActionRequestMessage(currentActionId);
             connection.send(message);
-        // not just else because if its not -1 and is the same as the latest it should do nothing
         } else if(currentActionId == -1 || currentActionId > latestActionId) {
             Storage.setCurrentActionID(latestActionId);
         }
