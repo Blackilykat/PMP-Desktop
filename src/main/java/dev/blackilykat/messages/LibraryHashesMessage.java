@@ -27,6 +27,7 @@ import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -124,7 +125,11 @@ public class LibraryHashesMessage extends Message {
                     break;
                 }
                 if(!nevermind) {
-                    ServerConnection.INSTANCE.downloadTrack(entry.getKey());
+                    try {
+                        ServerConnection.INSTANCE.downloadTrack(entry.getKey());
+                    } catch(IOException e) {
+                        System.out.println("Could not download " + entry.getKey());
+                    }
                     changes = true;
                 }
             } else if(!matches) {

@@ -28,6 +28,8 @@ import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.util.Pair;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,10 +100,19 @@ public class LibraryActionMessage extends Message {
         switch(actionType) {
             case ADD:
             case REPLACE:
-                connection.downloadTrack(fileName);
+                try {
+                    connection.downloadTrack(fileName);
+                } catch(IOException e) {
+                    // Likely means that the track has been removed in a later action.
+                    System.out.println("Could not download track " + fileName);
+                }
                 break;
             case REMOVE:
-                new File(Storage.LIBRARY, fileName).delete();
+                if(new File(Storage.LIBRARY, fileName).delete()) {
+                    System.out.println("Removed track " + fileName);
+                } else {
+                    System.out.println("Could not remove track " + fileName);
+                }
                 break;
             case CHANGE_METADATA:
                 // not implemented yet

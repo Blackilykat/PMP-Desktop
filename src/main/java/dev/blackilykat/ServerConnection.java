@@ -168,7 +168,7 @@ public class ServerConnection {
      * Downloads a track from the server
      * @param name the name of the track's file
      */
-    public void downloadTrack(String name) {
+    public void downloadTrack(String name) throws IOException {
         try {
             System.out.println("Attempting to download track " + name + "...");
             File destination = new File(Storage.LIBRARY, name);
@@ -190,7 +190,7 @@ public class ServerConnection {
             } else {
                 System.err.printf("Unexpected response code %d!", connection.getResponseCode());
             }
-        } catch(IOException | URISyntaxException e) {
+        } catch(URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
