@@ -24,6 +24,7 @@ import dev.blackilykat.util.Icons;
 import dev.blackilykat.widgets.Widget;
 
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.SpringLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -31,12 +32,14 @@ import java.awt.event.ActionListener;
 
 public class PlayBarWidget extends Widget {
     private static boolean playing = false;
-    public static JButton playPauseButton = new JButton(Icons.svgIcon(Icons.PLAY, 16, 16));
-    public static JButton nextTrackButton = new JButton(Icons.svgIcon(Icons.FORWARD, 16, 16));
-    public static JButton previousTrackButton = new JButton(Icons.svgIcon(Icons.BACKWARD, 16, 16));
-    public static JButton shuffleButton = new JButton(Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16));
-    public static JButton repeatButton = new JButton(Icons.svgIcon(Icons.REPEAT_OFF, 16, 16));
+    private static final int ICON_SIZE = 16;
+    public static JButton playPauseButton = new JButton(Icons.svgIcon(Icons.PLAY, ICON_SIZE, ICON_SIZE));
+    public static JButton nextTrackButton = new JButton(Icons.svgIcon(Icons.FORWARD, ICON_SIZE, ICON_SIZE));
+    public static JButton previousTrackButton = new JButton(Icons.svgIcon(Icons.BACKWARD, ICON_SIZE, ICON_SIZE));
+    public static JButton shuffleButton = new JButton(Icons.svgIcon(Icons.SHUFFLE_OFF, ICON_SIZE, ICON_SIZE));
+    public static JButton repeatButton = new JButton(Icons.svgIcon(Icons.REPEAT_OFF, ICON_SIZE, ICON_SIZE));
     public static TimeBar timeBar = new TimeBar();
+    public static TrackLabel trackLabel = new TrackLabel(Audio.INSTANCE);
 
     public PlayBarWidget() {
         super();
@@ -47,34 +50,45 @@ public class PlayBarWidget extends Widget {
         this.add(shuffleButton);
         this.add(repeatButton);
         this.add(timeBar);
+        this.add(trackLabel);
 
         layout.putConstraint(SpringLayout.NORTH, playPauseButton, 10, SpringLayout.NORTH, this);
+        layout.putConstraint(SpringLayout.SOUTH, playPauseButton, 30, SpringLayout.NORTH, playPauseButton);
         layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, playPauseButton, 0 , SpringLayout.HORIZONTAL_CENTER, this);
 
         layout.putConstraint(SpringLayout.WEST, nextTrackButton, 10, SpringLayout.EAST, playPauseButton);
+        layout.putConstraint(SpringLayout.NORTH, nextTrackButton, 0, SpringLayout.NORTH, playPauseButton);
         layout.putConstraint(SpringLayout.SOUTH, nextTrackButton, 0, SpringLayout.SOUTH, playPauseButton);
 
         layout.putConstraint(SpringLayout.WEST, repeatButton, 10, SpringLayout.EAST, nextTrackButton);
+        layout.putConstraint(SpringLayout.NORTH, repeatButton, 0, SpringLayout.NORTH, playPauseButton);
         layout.putConstraint(SpringLayout.SOUTH, repeatButton, 0, SpringLayout.SOUTH, playPauseButton);
 
         layout.putConstraint(SpringLayout.EAST, previousTrackButton, -10, SpringLayout.WEST, playPauseButton);
+        layout.putConstraint(SpringLayout.NORTH, previousTrackButton, 0, SpringLayout.NORTH, playPauseButton);
         layout.putConstraint(SpringLayout.SOUTH, previousTrackButton, 0, SpringLayout.SOUTH, playPauseButton);
 
         layout.putConstraint(SpringLayout.EAST, shuffleButton, -10, SpringLayout.WEST, previousTrackButton);
+        layout.putConstraint(SpringLayout.NORTH, shuffleButton, 0, SpringLayout.NORTH, playPauseButton);
         layout.putConstraint(SpringLayout.SOUTH, shuffleButton, 0, SpringLayout.SOUTH, playPauseButton);
 
         layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, timeBar, 0, SpringLayout.HORIZONTAL_CENTER, this);
         layout.putConstraint(SpringLayout.NORTH, timeBar, 0, SpringLayout.SOUTH, playPauseButton);
+
+        layout.putConstraint(SpringLayout.WEST, trackLabel, 10, SpringLayout.WEST, this);
+        layout.putConstraint(SpringLayout.EAST, trackLabel, -10, SpringLayout.WEST, shuffleButton);
+        layout.putConstraint(SpringLayout.NORTH, trackLabel, 0, SpringLayout.NORTH, playPauseButton);
+        layout.putConstraint(SpringLayout.SOUTH, trackLabel, 0, SpringLayout.SOUTH, playPauseButton);
     }
 
     @Override
     public Dimension getPreferredSize() {
-        return new Dimension(this.getParent().getWidth(), 80);
+        return new Dimension(this.getParent().getWidth(), 90);
     }
 
     @Override
     public Dimension getMinimumSize() {
-        return new Dimension(300, 80);
+        return new Dimension(300, 90);
     }
 
     public static class PlayPauseButtonListener implements ActionListener {
@@ -92,9 +106,9 @@ public class PlayBarWidget extends Widget {
     public static void setPlaying(boolean playing) {
         PlayBarWidget.playing = playing;
         if(playing) {
-            playPauseButton.setIcon(Icons.svgIcon(Icons.PAUSE, 16, 16));
+            playPauseButton.setIcon(Icons.svgIcon(Icons.PAUSE, ICON_SIZE, ICON_SIZE));
         } else {
-            playPauseButton.setIcon(Icons.svgIcon(Icons.PLAY , 16, 16));
+            playPauseButton.setIcon(Icons.svgIcon(Icons.PLAY , ICON_SIZE, ICON_SIZE));
         }
     }
 

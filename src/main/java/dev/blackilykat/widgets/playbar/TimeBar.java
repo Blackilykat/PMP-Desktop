@@ -166,7 +166,7 @@ public class TimeBar extends JSlider {
             String total = String.format("%d:%02d", totalTimeMinutes, totalTimeSeconds);
 
             g.setColor(new Color(0x000000));
-            g.setFont(new Font("Arial", 0, 20));
+            g.setFont(new Font("Arial", Font.PLAIN, 20));
             FontMetrics fontMetrics = g.getFontMetrics();
             g.drawString(passed, 0, getStringHeightCentered(fontMetrics, slider.getHeight()/2));
             g.drawString(total, slider.getWidth() - fontMetrics.stringWidth(total), getStringHeightCentered(fontMetrics, slider.getHeight()/2));
