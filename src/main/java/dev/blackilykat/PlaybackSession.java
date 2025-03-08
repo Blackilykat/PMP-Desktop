@@ -19,6 +19,8 @@ package dev.blackilykat;
 
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.util.Icons;
+import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
 import java.time.Instant;
@@ -32,6 +34,7 @@ public class PlaybackSession {
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
     private static final List<SessionListener> registerListeners = new ArrayList<>();
     private final List<SessionListener> unregisterListeners = new ArrayList<>();
+    private List<LibraryFilter> filters = new ArrayList<>();
 
     private Random random = new Random();
 
@@ -66,6 +69,18 @@ public class PlaybackSession {
         this.id = id;
         playing = false;
         position = 0;
+    }
+
+    public LibraryFilter[] getLibraryFilters() {
+        return filters.toArray(new LibraryFilter[0]);
+    }
+
+    public void addLibraryFilter(LibraryFilter filter) {
+        filters.add(filter);
+    }
+
+    public void removeLibraryFilter(LibraryFilter filter) {
+        filters.remove(filter);
     }
 
     public int getPosition() {

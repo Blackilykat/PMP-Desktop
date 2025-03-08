@@ -78,7 +78,11 @@ public class LibraryFilterPanel extends JPanel {
             public void mouseReleased(MouseEvent e) {
                 if(widget != null) {
                     widget.panels.remove(LibraryFilterPanel.this);
-                    filter.library.filters.remove(filter);
+
+                    assert filter.library.audio != null;
+                    assert filter.library.audio.currentSession != null;
+                    filter.library.audio.currentSession.removeLibraryFilter(filter);
+
                     widget.reloadElements();
                     filter.library.reloadFilters();
                 } else {

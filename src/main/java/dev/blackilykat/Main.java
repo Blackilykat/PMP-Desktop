@@ -49,6 +49,7 @@ public class Main {
         Storage.init();
         Library.INSTANCE = new Library();
         Audio.INSTANCE = new Audio(Library.INSTANCE);
+        Library.INSTANCE.audio = Audio.INSTANCE;
 
         SwingUtilities.invokeLater(() -> {
             mainWindow = new JFrame("PMP Desktop");

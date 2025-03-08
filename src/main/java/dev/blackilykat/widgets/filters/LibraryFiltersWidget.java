@@ -17,6 +17,7 @@
 
 package dev.blackilykat.widgets.filters;
 
+import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
 import dev.blackilykat.widgets.Widget;
 
@@ -65,8 +66,11 @@ public class LibraryFiltersWidget extends Widget {
                 }
             }
         });
-        for(LibraryFilter filter : Library.INSTANCE.filters) {
-            panels.add(new LibraryFilterPanel(filter, this));
+
+        if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
+            for(LibraryFilter filter : Audio.INSTANCE.currentSession.getLibraryFilters()) {
+                panels.add(new LibraryFilterPanel(filter, this));
+            }
         }
 
         reloadElements();
@@ -105,7 +109,9 @@ public class LibraryFiltersWidget extends Widget {
             public void mouseReleased(MouseEvent e) {
                 String answer = JOptionPane.showInputDialog("Insert the metadata to filter through");
                 LibraryFilter filter = new LibraryFilter(Library.INSTANCE, answer);
-                Library.INSTANCE.filters.add(filter);
+                if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
+                    Audio.INSTANCE.currentSession.addLibraryFilter(filter);
+                }
                 LibraryFilterPanel panel = new LibraryFilterPanel(filter, LibraryFiltersWidget.this);
                 panels.add(panel);
                 reloadElements();

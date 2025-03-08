@@ -37,25 +37,13 @@ import java.util.zip.CheckedInputStream;
 
 public class Library {
     public static Library INSTANCE = null;
+    public Audio audio = null;
     public List<Track> tracks = new ArrayList<>();
     public List<Track> filteredTracks = new ArrayList<>();
-    public List<LibraryFilter> filters = new ArrayList<>();
     public boolean loaded = false;
 
     public Library() {
         this.reloadAll();
-        // shutdown hook for saving is in Storage to avoid race conditions when closing the db
-        Map<String, Map<String, LibraryFilterOption.State>> storedFilters = Storage.getFilters();
-        System.out.println(storedFilters);
-        storedFilters.forEach((key, options) -> {
-            LibraryFilter filter = new LibraryFilter(this, key);
-            filter.reloadOptions();
-            options.forEach((name, state) -> {
-                System.out.println(name + " -> " + state);
-                filter.getOption(name).state = state;
-            });
-            filters.add(filter);
-        });
     }
 
     public int findIndex(File file) {
@@ -118,8 +106,9 @@ public class Library {
     public void reloadFilters() {
         filteredTracks.clear();
         filteredTracks.addAll(tracks);
+        if(audio == null) return;
         System.out.println("RELOADING FILTERS");
-        for(LibraryFilter filter : filters) {
+        for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
             System.out.println("FILTER " + filter.key);
             filter.reloadMatching();
             filteredTracks.clear();

@@ -46,14 +46,16 @@ public class Storage {
         pendingLibraryActions = (Queue<LibraryAction>) general.getOrDefault("pendingLibraryActions", new LinkedList<>());
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Map<String, Map<String, LibraryFilterOption.State>> filters = new HashMap<>();
-            for(LibraryFilter filter : Library.INSTANCE.filters) {
-                Map<String, LibraryFilterOption.State> options = new HashMap<>();
-                for(LibraryFilterOption option : filter.getOptions()) {
-                    options.put(option.value, option.state);
+            if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
+                for(LibraryFilter filter : Audio.INSTANCE.currentSession.getLibraryFilters()) {
+                    Map<String, LibraryFilterOption.State> options = new HashMap<>();
+                    for(LibraryFilterOption option : filter.getOptions()) {
+                        options.put(option.value, option.state);
+                    }
+                    filters.put(filter.key, options);
                 }
-                filters.put(filter.key, options);
+                Storage.setFilters(filters);
             }
-            Storage.setFilters(filters);
 
             List<Triple<String, String, Integer>> headers = new ArrayList<>();
             for(TrackDataHeader header : Main.songListWidget.dataHeaders) {
