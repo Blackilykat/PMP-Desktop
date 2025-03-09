@@ -32,6 +32,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LibraryFiltersWidget extends Widget {
@@ -109,6 +110,7 @@ public class LibraryFiltersWidget extends Widget {
             public void mouseReleased(MouseEvent e) {
                 String answer = JOptionPane.showInputDialog("Insert the metadata to filter through");
                 LibraryFilter filter = new LibraryFilter(Library.INSTANCE, answer);
+                filter.reloadOptions();
                 if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
                     Audio.INSTANCE.currentSession.addLibraryFilter(filter);
                 }

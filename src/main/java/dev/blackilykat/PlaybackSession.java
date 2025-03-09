@@ -19,12 +19,15 @@ package dev.blackilykat;
 
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.util.Icons;
+import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.Stack;
@@ -77,10 +80,19 @@ public class PlaybackSession {
 
     public void addLibraryFilter(LibraryFilter filter) {
         filters.add(filter);
+        List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> thing = PlaybackSessionUpdateMessage.getFiltersFromSession(this);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, thing, null);
     }
 
     public void removeLibraryFilter(LibraryFilter filter) {
         filters.remove(filter);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
+    }
+
+    public void setLibraryFilters(Collection<LibraryFilter> newFilters) {
+        filters.clear();
+        filters.addAll(newFilters);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
     }
 
     public int getPosition() {
@@ -92,7 +104,7 @@ public class PlaybackSession {
         if(isJump) {
             lastSharedPosition = position;
             lastSharedPositionTime = Instant.now();
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null);
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null, null);
             callUpdateListeners();
         }
     }
@@ -112,7 +124,7 @@ public class PlaybackSession {
 
     public void setPlaying(boolean playing) {
         this.playing = playing;
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null, null);
         if(Audio.INSTANCE.currentSession == this) {
             PlayBarWidget.setPlaying(playing);
         }
@@ -126,7 +138,7 @@ public class PlaybackSession {
     public void setOwnerId(int ownerId) {
         this.ownerId = ownerId;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, ownerId);
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, ownerId);
         }
         callUpdateListeners();
     }
@@ -222,7 +234,7 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null, null);
         callUpdateListeners();
     }
 
@@ -238,7 +250,7 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.REPEAT_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null, null);
         callUpdateListeners();
     }
 

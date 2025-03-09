@@ -26,6 +26,8 @@ import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.util.Pair;
+import dev.blackilykat.widgets.filters.LibraryFilterOption;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -134,7 +136,7 @@ public class PlaybackSessionListMessage extends Message {
         if(hasNewerInfo && allowedToOverride) {
             session.recalculatePosition(Instant.now());
             session.setOwnerId(ServerConnection.INSTANCE.clientId);
-            PlaybackSessionUpdateMessage.doUpdate(session.id, session.getCurrentTrack().getFile().getName(), session.getShuffle(), session.getRepeat(), session.getPlaying(), session.getPosition(), ServerConnection.INSTANCE.clientId);
+            PlaybackSessionUpdateMessage.doUpdate(session.id, session.getCurrentTrack().getFile().getName(), session.getShuffle(), session.getRepeat(), session.getPlaying(), session.getPosition(), PlaybackSessionUpdateMessage.getFiltersFromSession(session), ServerConnection.INSTANCE.clientId);
         } else {
             Track track = null;
             for(Track t : Library.INSTANCE.tracks) {
@@ -143,7 +145,7 @@ public class PlaybackSessionListMessage extends Message {
                     break;
                 }
             }
-            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null);
+            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null);
             if(Audio.INSTANCE.currentSession == session) {
                 Audio.INSTANCE.startPlaying(track, false);
             } else {
@@ -192,6 +194,24 @@ public class PlaybackSessionListMessage extends Message {
             JsonElement lastUpdateTimeElem = obj.get("lastUpdateTime");
             Instant lastUpdateTime = lastUpdateTimeElem == null ? null : Instant.ofEpochMilli(lastUpdateTimeElem.getAsLong());
 
+            final List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters = obj.has("filters") ? new ArrayList<>() : null;
+
+            if(obj.has("filters")) {
+                obj.getAsJsonArray("filters").asList().stream()
+                        .map(elem -> elem.getAsJsonObject())
+                        .forEach(filterObj -> {
+                    Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter = new Pair<>(filterObj.get("key").getAsString(), new ArrayList<>());
+
+                    filterObj.getAsJsonArray("value").asList().stream()
+                            .map(elem -> elem.getAsJsonObject())
+                            .forEach(optionObj -> {
+                        filter.value.add(new Pair<>(optionObj.get("key").getAsString(), LibraryFilterOption.State.valueOf(optionObj.get("value").getAsString())));
+                    });
+                    assert filters != null;
+                    filters.add(filter);
+                });
+            }
+
             PlaybackSessionElement element = new PlaybackSessionElement(
                     id,
                     track,
@@ -200,6 +220,7 @@ public class PlaybackSessionListMessage extends Message {
                     playing,
                     lastPositionUpdate,
                     owner,
+                    filters,
                     lastUpdateTime
             );
             elements.add(element);
@@ -216,9 +237,10 @@ public class PlaybackSessionListMessage extends Message {
         public int lastPositionUpdate;
         public int owner;
         public Instant lastUpdateTime;
+        public List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters;
 
         public PlaybackSessionElement(int id, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat,
-                                      boolean playing, int lastPositionUpdate, int owner, Instant lastUpdateTime) {
+                                      boolean playing, int lastPositionUpdate, int owner, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters,  Instant lastUpdateTime) {
             this.id = id;
             this.track = track;
             this.shuffle = shuffle;
@@ -226,6 +248,7 @@ public class PlaybackSessionListMessage extends Message {
             this.playing = playing;
             this.lastPositionUpdate = lastPositionUpdate;
             this.owner = owner;
+            this.filters = filters;
             this.lastUpdateTime = lastUpdateTime;
         }
     }

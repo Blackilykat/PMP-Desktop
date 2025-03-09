@@ -110,10 +110,10 @@ public class Audio {
             if (!canPlay) return;
             // reset is true when the action was caused by this client (so send it to the server) and false when it was caused by the server
             if(reset) {
-                PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null);
+                PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null, null);
             }
             PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(currentSession.id, null, null,
-                    null, null, null, null, Instant.now());
+                    null, null, null, null, null, Instant.now());
             try {
                 currentSession.setCurrentTrack(track);
                 if (reset) {
@@ -160,7 +160,7 @@ public class Audio {
         }
 
         PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
-                null, null, null, null, Instant.now());
+                null, null, null, null, null, Instant.now());
         // avoid changing stuff null WHILE it's processing
         synchronized(this.audioLock) {
             Track oldTrack = this.currentSession.getCurrentTrack();

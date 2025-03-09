@@ -19,16 +19,22 @@ package dev.blackilykat.messages;
 
 import com.google.gson.JsonObject;
 import dev.blackilykat.Audio;
+import dev.blackilykat.Json;
 import dev.blackilykat.Library;
 import dev.blackilykat.Main;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.util.Pair;
+import dev.blackilykat.widgets.filters.LibraryFilter;
+import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.playbar.TimeBar;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Updates an existing playback session which is known by both the server and the client.
@@ -51,6 +57,7 @@ public class PlaybackSessionUpdateMessage extends Message {
     public Integer owner;
     public Instant time;
     public int sessionId;
+    public List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters;
 
 
     /**
@@ -62,7 +69,7 @@ public class PlaybackSessionUpdateMessage extends Message {
      * @param position The new position, null if unchanged (This should not be sent during normal progression of a track,
      *                 but only at jumps)
      */
-    public PlaybackSessionUpdateMessage(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, Integer owner, Instant time) {
+    public PlaybackSessionUpdateMessage(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, Integer owner, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters, Instant time) {
         this.sessionId = sessionId;
         this.track = track;
         this.shuffle = shuffle;
@@ -70,6 +77,7 @@ public class PlaybackSessionUpdateMessage extends Message {
         this.playing = playing;
         this.position = position;
         this.owner = owner;
+        this.filters = filters;
         this.time = time;
     }
 
@@ -102,12 +110,15 @@ public class PlaybackSessionUpdateMessage extends Message {
         if(owner != null) {
             object.addProperty("owner", owner);
         }
+        if(filters != null) {
+            object.add("filters", Json.GSON.toJsonTree(filters));
+        }
     }
 
     @Override
     public void handle(ServerConnection connection) {
         // prevent updates echoing back to the server
-        messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null);
+        messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null);
         for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
             if(!session.acknowledgedByServer || session.id != sessionId) continue;
             if(position != null) {
@@ -141,7 +152,7 @@ public class PlaybackSessionUpdateMessage extends Message {
 
                     if(session.getOwnerId() == ServerConnection.INSTANCE.clientId) {
                         session.lastSharedPositionTime = Instant.now();
-                        connection.send(new PlaybackSessionUpdateMessage(sessionId, null, null, null, null, session.lastSharedPosition, null, session.lastSharedPositionTime));
+                        connection.send(new PlaybackSessionUpdateMessage(sessionId, null, null, null, null, session.lastSharedPosition, null, null, session.lastSharedPositionTime));
                     } else {
                         session.lastSharedPositionTime = time;
                         if(playing) {
@@ -157,6 +168,21 @@ public class PlaybackSessionUpdateMessage extends Message {
             if(owner != null) {
                 session.setOwnerId(owner);
             }
+            if(filters != null) {
+                List<LibraryFilter> filtersInSession = new ArrayList<>();
+                for(Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter : filters) {
+                    LibraryFilter filterInSession = new LibraryFilter(Library.INSTANCE, filter.key);
+                    List<LibraryFilterOption> options = new ArrayList<>();
+                    for(Pair<String, LibraryFilterOption.State> option : filter.value) {
+                        LibraryFilterOption optionInSession = new LibraryFilterOption(filterInSession, option.key);
+                        optionInSession.state = option.value;
+                        options.add(optionInSession);
+                    }
+                    filterInSession.setOptions(options);
+                    filtersInSession.add(filterInSession);
+                }
+                session.setLibraryFilters(filtersInSession);
+            }
         }
         messageBuffer = null;
         Main.playBarWidget.repaint();
@@ -164,6 +190,25 @@ public class PlaybackSessionUpdateMessage extends Message {
 
     //@Override
     public static PlaybackSessionUpdateMessage fromJson(JsonObject json) throws MessageException {
+
+        final List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters = json.has("filters") ? new ArrayList<>() : null;
+
+        if(json.has("filters")) {
+            json.getAsJsonArray("filters").asList().stream()
+                    .map(elem -> elem.getAsJsonObject())
+                    .forEach(filterObj -> {
+                        Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter = new Pair<>(filterObj.get("key").getAsString(), new ArrayList<>());
+
+                        filterObj.getAsJsonArray("value").asList().stream()
+                                .map(elem -> elem.getAsJsonObject())
+                                .forEach(optionObj -> {
+                                    filter.value.add(new Pair<>(optionObj.get("key").getAsString(), LibraryFilterOption.State.valueOf(optionObj.get("value").getAsString())));
+                                });
+                        assert filters != null;
+                        filters.add(filter);
+                    });
+        }
+
         return new PlaybackSessionUpdateMessage(
                 json.get("sessionId").getAsInt(),
                 json.has("track") ? json.get("track").getAsString() : null,
@@ -172,11 +217,12 @@ public class PlaybackSessionUpdateMessage extends Message {
                 json.has("playing") ? json.get("playing").getAsBoolean() : null,
                 json.has("position") ? json.get("position").getAsInt() : null,
                 json.has("owner") ? json.get("owner").getAsInt() : null,
+                filters,
                 json.has("time") ? Instant.ofEpochMilli(json.get("time").getAsLong()) : Instant.now()
         );
     }
 
-    public static void doUpdate(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, Integer owner) {
+    public static void doUpdate(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters, Integer owner) {
         if(messageBuffer != null) {
             messageBuffer.sessionId = sessionId;
             if(track != null) messageBuffer.track = track;
@@ -184,11 +230,24 @@ public class PlaybackSessionUpdateMessage extends Message {
             if(repeat != null) messageBuffer.repeat = repeat;
             if(playing != null) messageBuffer.playing = playing;
             if(position != null) messageBuffer.position = position;
+            if(filters != null) messageBuffer.filters = filters;
             if(owner != null) messageBuffer.owner = owner;
         } else {
             if(ServerConnection.INSTANCE != null) {
-                ServerConnection.INSTANCE.send(new PlaybackSessionUpdateMessage(sessionId, track, shuffle, repeat, playing, position, owner, Instant.now()));
+                ServerConnection.INSTANCE.send(new PlaybackSessionUpdateMessage(sessionId, track, shuffle, repeat, playing, position, owner, filters, Instant.now()));
             }
         }
+    }
+
+    public static List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> getFiltersFromSession(PlaybackSession session) {
+        List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> list = new ArrayList<>();
+        for(LibraryFilter filter : session.getLibraryFilters()) {
+            Pair<String, List<Pair<String, LibraryFilterOption.State>>> filterPair = new Pair<>(filter.key, new ArrayList<>());
+            for(LibraryFilterOption option : filter.getOptions()) {
+                filterPair.value.add(new Pair<>(option.value, option.state));
+            }
+            list.add(filterPair);
+        }
+        return list;
     }
 }

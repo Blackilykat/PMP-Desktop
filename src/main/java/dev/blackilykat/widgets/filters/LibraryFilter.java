@@ -22,7 +22,10 @@ import dev.blackilykat.Track;
 import dev.blackilykat.util.Pair;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class LibraryFilter {
@@ -50,7 +53,7 @@ public class LibraryFilter {
     /**
      * All options the user can select.
      */
-    private Set<LibraryFilterOption> options = new HashSet<>();
+    private List<LibraryFilterOption> options = new ArrayList<>();
 
     /**
      * The panel that represents this filter.
@@ -64,6 +67,12 @@ public class LibraryFilter {
 
     public LibraryFilterOption[] getOptions() {
         return options.toArray(new LibraryFilterOption[0]);
+    }
+
+    public void setOptions(Collection<LibraryFilterOption> options) {
+        this.options.clear();
+        this.options.addAll(options);
+        this.reloadMatching();
     }
 
     public LibraryFilterOption getOption(String value) {
@@ -136,7 +145,9 @@ public class LibraryFilter {
         LibraryFilterOption everything = new LibraryFilterOption(this, OPTION_EVERYTHING);
         everything.state = LibraryFilterOption.State.POSITIVE;
         options.add(everything);
+        boolean shouldAddUnknown = false;
 
+        List<LibraryFilterOption> sortedOptions = new ArrayList<>();
         for(Track track : library.tracks) {
             boolean hasKey = false;
 
@@ -144,12 +155,22 @@ public class LibraryFilter {
                 if(!key.equals(pair.key)) continue;
 
                 hasKey = true;
-                options.add(new LibraryFilterOption(this, pair.value));
+                LibraryFilterOption option = new LibraryFilterOption(this, pair.value);
+                if(!sortedOptions.contains(option)) {
+                    sortedOptions.add(option);
+                }
             }
 
             if(!hasKey) {
-                options.add(new LibraryFilterOption(this, OPTION_UNKNOWN));
+                shouldAddUnknown = true;
             }
+        }
+
+        sortedOptions = sortedOptions.stream().sorted().toList();
+        options.addAll(sortedOptions);
+
+        if(shouldAddUnknown) {
+            options.add(new LibraryFilterOption(this, OPTION_UNKNOWN));
         }
 
         if(panel != null) {
