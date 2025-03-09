@@ -129,6 +129,8 @@ public class TrackLabel extends JPanel {
     public void setTrack(Track track) {
         this.track = track;
         artists.clear();
+
+        if(track == null) return;
         for(Pair<String, String> metadatum : track.metadata) {
             if(metadatum.key.equals("title")) {
                 this.title = metadatum.value;
