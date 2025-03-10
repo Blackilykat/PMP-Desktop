@@ -169,7 +169,7 @@ public class PlaybackSessionUpdateMessage extends Message {
                 session.setOwnerId(owner);
             }
             if(filters != null) {
-                session.setLibraryFilters(asFilterObject(filters));
+                session.setLibraryFilters(asFilterObject(filters, session));
                 Main.libraryFiltersWidget.reloadPanels();
                 Main.libraryFiltersWidget.reloadElements();
             }
@@ -234,21 +234,21 @@ public class PlaybackSessionUpdateMessage extends Message {
         for(LibraryFilter filter : session.getLibraryFilters()) {
             Pair<String, List<Pair<String, LibraryFilterOption.State>>> filterPair = new Pair<>(filter.key, new ArrayList<>());
             for(LibraryFilterOption option : filter.getOptions()) {
-                filterPair.value.add(new Pair<>(option.value, option.state));
+                filterPair.value.add(new Pair<>(option.value, option.getState()));
             }
             list.add(filterPair);
         }
         return list;
     }
 
-    public static List<LibraryFilter> asFilterObject(List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters) {
+    public static List<LibraryFilter> asFilterObject(List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters, PlaybackSession session) {
         List<LibraryFilter> filtersInSession = new ArrayList<>();
         for(Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter : filters) {
-            LibraryFilter filterInSession = new LibraryFilter(Library.INSTANCE, filter.key);
+            LibraryFilter filterInSession = new LibraryFilter(Library.INSTANCE, session, filter.key);
             List<LibraryFilterOption> options = new ArrayList<>();
             for(Pair<String, LibraryFilterOption.State> option : filter.value) {
                 LibraryFilterOption optionInSession = new LibraryFilterOption(filterInSession, option.key);
-                optionInSession.state = option.value;
+                optionInSession.setState(option.value, false);
                 options.add(optionInSession);
             }
             filterInSession.setOptions(options);

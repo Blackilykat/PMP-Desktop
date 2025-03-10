@@ -97,8 +97,9 @@ public class Library {
                 for(LibraryFilterOption oldOption : oldOptions) {
                     LibraryFilterOption newOption = filter.getOption(oldOption.value);
                     if(newOption == null) continue;
-                    newOption.state = oldOption.state;
+                    newOption.setState(oldOption.getState(), false);
                 }
+                filter.session.sendFilterUpdate();
             }
         }
     }

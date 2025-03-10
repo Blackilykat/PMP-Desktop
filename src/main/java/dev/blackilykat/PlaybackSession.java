@@ -280,7 +280,9 @@ public class PlaybackSession {
         return null;
     }
 
-
+    public void sendFilterUpdate() {
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
+    }
 
 
     public enum ShuffleOption {

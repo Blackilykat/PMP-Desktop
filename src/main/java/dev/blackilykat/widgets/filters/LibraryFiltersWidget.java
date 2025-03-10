@@ -119,7 +119,7 @@ public class LibraryFiltersWidget extends Widget {
             @Override
             public void mouseReleased(MouseEvent e) {
                 String answer = JOptionPane.showInputDialog("Insert the metadata to filter through");
-                LibraryFilter filter = new LibraryFilter(Library.INSTANCE, answer);
+                LibraryFilter filter = new LibraryFilter(Library.INSTANCE, audio.currentSession, answer);
                 filter.reloadOptions();
                 if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
                     Audio.INSTANCE.currentSession.addLibraryFilter(filter);

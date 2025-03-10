@@ -21,12 +21,23 @@ public class LibraryFilterOption implements Comparable<LibraryFilterOption> {
     public final LibraryFilter filter;
     public final String value;
     public LibraryFilterPanel.OptionButton button = null;
-    public State state = State.NONE;
+    private State state = State.NONE;
 
     public LibraryFilterOption(LibraryFilter filter, String value) {
         System.out.println("adding option with value " + value + " to filter " + filter.key);
         this.filter = filter;
         this.value = value;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state, boolean sendUpdate) {
+        this.state = state;
+        if(sendUpdate) {
+            filter.session.sendFilterUpdate();
+        }
     }
 
     // so they can be sorted in a stream

@@ -50,7 +50,7 @@ public class Storage {
                 for(LibraryFilter filter : Audio.INSTANCE.currentSession.getLibraryFilters()) {
                     Map<String, LibraryFilterOption.State> options = new HashMap<>();
                     for(LibraryFilterOption option : filter.getOptions()) {
-                        options.put(option.value, option.state);
+                        options.put(option.value, option.getState());
                     }
                     filters.put(filter.key, options);
                 }

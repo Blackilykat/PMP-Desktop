@@ -18,6 +18,7 @@
 package dev.blackilykat.widgets.filters;
 
 import dev.blackilykat.Library;
+import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.Track;
 import dev.blackilykat.util.Pair;
 
@@ -60,8 +61,11 @@ public class LibraryFilter {
      */
     public LibraryFilterPanel panel = null;
 
-    public LibraryFilter(Library library, String key) {
+    public PlaybackSession session;
+
+    public LibraryFilter(Library library, PlaybackSession session, String key) {
         this.library = library;
+        this.session = session;
         this.key = key;
     }
 
@@ -87,11 +91,11 @@ public class LibraryFilter {
     public void reloadMatching() {
         matchingTracks.clear();
 
-        if(this.getOption(OPTION_EVERYTHING).state == LibraryFilterOption.State.POSITIVE) {
+        if(this.getOption(OPTION_EVERYTHING).getState() == LibraryFilterOption.State.POSITIVE) {
             matchingTracks.addAll(library.filteredTracks);
         } else {
             for(LibraryFilterOption option : getOptions()) {
-                if(option.state != LibraryFilterOption.State.POSITIVE) continue;
+                if(option.getState() != LibraryFilterOption.State.POSITIVE) continue;
 
                 for(Track track : library.filteredTracks) {
                     boolean hasKey = false;
@@ -109,7 +113,7 @@ public class LibraryFilter {
                     LibraryFilterOption unknown = this.getOption(OPTION_UNKNOWN);
                     // reloadOptions() would've added unknown to the options list due to this not having the key
                     assert unknown != null;
-                    if(!hasKey && unknown.state == LibraryFilterOption.State.POSITIVE) {
+                    if(!hasKey && unknown.getState() == LibraryFilterOption.State.POSITIVE) {
                         matchingTracks.add(track);
                     }
                 }
@@ -117,7 +121,7 @@ public class LibraryFilter {
         }
 
         for(LibraryFilterOption option : getOptions()) {
-            if(option.state != LibraryFilterOption.State.NEGATIVE) continue;
+            if(option.getState() != LibraryFilterOption.State.NEGATIVE) continue;
 
             for(Track track : library.filteredTracks) {
                 boolean hasKey = false;
@@ -133,7 +137,7 @@ public class LibraryFilter {
 
                 LibraryFilterOption unknown = this.getOption(OPTION_UNKNOWN);
                 assert unknown != null;
-                if(!hasKey && unknown.state == LibraryFilterOption.State.NEGATIVE) {
+                if(!hasKey && unknown.getState() == LibraryFilterOption.State.NEGATIVE) {
                     matchingTracks.remove(track);
                 }
             }
@@ -143,7 +147,7 @@ public class LibraryFilter {
     public void reloadOptions() {
         options.clear();
         LibraryFilterOption everything = new LibraryFilterOption(this, OPTION_EVERYTHING);
-        everything.state = LibraryFilterOption.State.POSITIVE;
+        everything.setState(LibraryFilterOption.State.POSITIVE, false);
         options.add(everything);
         boolean shouldAddUnknown = false;
 

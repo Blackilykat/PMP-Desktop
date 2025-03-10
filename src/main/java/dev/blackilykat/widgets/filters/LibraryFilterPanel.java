@@ -18,6 +18,7 @@
 package dev.blackilykat.widgets.filters;
 
 import dev.blackilykat.Main;
+import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.widgets.ScrollablePanel;
 
 import javax.swing.JButton;
@@ -35,6 +36,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class LibraryFilterPanel extends JPanel {
@@ -112,23 +114,7 @@ public class LibraryFilterPanel extends JPanel {
     public void reloadOptions() {
         optionsContainer.removeAll();
 
-        List<LibraryFilterOption> options = new ArrayList<>(Arrays.stream(filter.getOptions()).sorted().toList());
-
-        LibraryFilterOption everything = new LibraryFilterOption(filter, LibraryFilter.OPTION_EVERYTHING);
-        if(options.contains(everything)) {
-            everything = filter.getOption(LibraryFilter.OPTION_EVERYTHING);
-            options.remove(everything);
-            options.addFirst(everything);
-        }
-
-        LibraryFilterOption unknown = new LibraryFilterOption(filter, LibraryFilter.OPTION_UNKNOWN);
-        if(options.contains(unknown)) {
-            unknown = filter.getOption(LibraryFilter.OPTION_UNKNOWN);
-            options.remove(unknown);
-            options.addLast(unknown);
-        }
-
-        for(LibraryFilterOption option : options) {
+        for(LibraryFilterOption option : filter.getOptions()) {
             optionsContainer.add(new OptionButton(option));
         }
     }
@@ -167,21 +153,23 @@ public class LibraryFilterPanel extends JPanel {
                     mouseDown = false;
                     repaint();
 
+                    // these are all set to not send updates because an update will be manually sent a the end of this block
+                    // (to avoid sending a bagillion updates)
                     if(e.getButton() == MouseEvent.BUTTON1) {
-                        if(option.state == LibraryFilterOption.State.POSITIVE) {
-                            option.state = LibraryFilterOption.State.NONE;
+                        if(option.getState() == LibraryFilterOption.State.POSITIVE) {
+                            option.setState(LibraryFilterOption.State.NONE, false);
                         } else {
-                            option.state = LibraryFilterOption.State.POSITIVE;
+                            option.setState(LibraryFilterOption.State.POSITIVE, false);
                         }
                     } else if(e.getButton() == MouseEvent.BUTTON3) {
                         // negative everything doesn't really make sense
                         if(option.value.equals(LibraryFilter.OPTION_EVERYTHING)) {
                             return;
                         }
-                        if(option.state == LibraryFilterOption.State.NEGATIVE) {
-                            option.state = LibraryFilterOption.State.NONE;
+                        if(option.getState() == LibraryFilterOption.State.NEGATIVE) {
+                            option.setState(LibraryFilterOption.State.NONE, false);
                         } else {
-                            option.state = LibraryFilterOption.State.NEGATIVE;
+                            option.setState(LibraryFilterOption.State.NEGATIVE, false);
                         }
                     }
 
@@ -193,37 +181,37 @@ public class LibraryFilterPanel extends JPanel {
                         LibraryFilterOption everything = option.filter.getOption(LibraryFilter.OPTION_EVERYTHING);
                         for(LibraryFilterOption filterOption : option.filter.getOptions()) {
                             if(filterOption == everything) continue;
-                            if(filterOption.state == LibraryFilterOption.State.POSITIVE) {
+                            if(filterOption.getState() == LibraryFilterOption.State.POSITIVE) {
                                 hasPositive = true;
                                 break;
                             }
                         }
                         if(!hasPositive) {
-                            everything.state = LibraryFilterOption.State.POSITIVE;
+                            everything.setState(LibraryFilterOption.State.POSITIVE, false);
                         } else {
-                            everything.state = LibraryFilterOption.State.NONE;
+                            everything.setState(LibraryFilterOption.State.NONE, false);
                         }
                         if(everything.button != null) {
                             everything.button.repaint();
                         }
                     } else {
-                        if(option.state == LibraryFilterOption.State.NONE) {
+                        if(option.getState() == LibraryFilterOption.State.NONE) {
                             boolean hasPositive = false;
                             for(LibraryFilterOption filterOption : option.filter.getOptions()) {
-                                if(filterOption.state == LibraryFilterOption.State.POSITIVE) {
+                                if(filterOption.getState() == LibraryFilterOption.State.POSITIVE) {
                                     hasPositive = true;
                                     break;
                                 }
                             }
                             if(!hasPositive) {
-                                option.state = LibraryFilterOption.State.POSITIVE;
+                                option.setState(LibraryFilterOption.State.POSITIVE, false);
                             }
                         } else {
                             for(LibraryFilterOption filterOption : option.filter.getOptions()) {
                                 // don't make it undo what it just did
                                 if(filterOption == option) continue;
-                                if(filterOption.state == option.state) {
-                                    filterOption.state = LibraryFilterOption.State.NONE;
+                                if(filterOption.getState() == option.getState()) {
+                                    filterOption.setState(LibraryFilterOption.State.NONE, false);
                                     if(filterOption.button != null) {
                                         filterOption.button.repaint();
                                     }
@@ -234,6 +222,7 @@ public class LibraryFilterPanel extends JPanel {
 
                     repaint();
 
+                    option.filter.session.sendFilterUpdate();
                     Main.songListWidget.refreshTracks();
                     option.filter.library.reloadFilters();
                     option.filter.library.reloadSorting();
@@ -277,7 +266,7 @@ public class LibraryFilterPanel extends JPanel {
         @Override
         public Color getBackground() {
             if(option == null) return NEUTRAL_BACKGROUND_COLOR;
-            return switch(option.state) {
+            return switch(option.getState()) {
                 case POSITIVE -> POSITIVE_BACKGROUND_COLOR;
                 case NEGATIVE -> NEGATIVE_BACKGROUND_COLOR;
                 default -> NEUTRAL_BACKGROUND_COLOR;

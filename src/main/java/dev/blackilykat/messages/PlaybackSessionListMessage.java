@@ -162,7 +162,7 @@ public class PlaybackSessionListMessage extends Message {
             session.lastSharedPosition = element.lastPositionUpdate;
             session.lastSharedPositionTime = element.lastUpdateTime;
             session.recalculatePosition(Instant.now());
-            session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters));
+            session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
             PlaybackSessionUpdateMessage.messageBuffer = null;
         }
         session.acknowledgedByServer = true;
