@@ -91,11 +91,11 @@ public class Library {
 
     public void reloadOptions() {
         if(Main.libraryFiltersWidget != null) {
-            for(LibraryFilterPanel panel : Main.libraryFiltersWidget.panels) {
-                LibraryFilterOption[] oldOptions = panel.filter.getOptions();
-                panel.filter.reloadOptions();
+            for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
+                LibraryFilterOption[] oldOptions = filter.getOptions();
+                filter.reloadOptions();
                 for(LibraryFilterOption oldOption : oldOptions) {
-                    LibraryFilterOption newOption = panel.filter.getOption(oldOption.value);
+                    LibraryFilterOption newOption = filter.getOption(oldOption.value);
                     if(newOption == null) continue;
                     newOption.state = oldOption.state;
                 }

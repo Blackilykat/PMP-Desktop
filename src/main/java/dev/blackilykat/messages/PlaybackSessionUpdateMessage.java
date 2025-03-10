@@ -169,19 +169,9 @@ public class PlaybackSessionUpdateMessage extends Message {
                 session.setOwnerId(owner);
             }
             if(filters != null) {
-                List<LibraryFilter> filtersInSession = new ArrayList<>();
-                for(Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter : filters) {
-                    LibraryFilter filterInSession = new LibraryFilter(Library.INSTANCE, filter.key);
-                    List<LibraryFilterOption> options = new ArrayList<>();
-                    for(Pair<String, LibraryFilterOption.State> option : filter.value) {
-                        LibraryFilterOption optionInSession = new LibraryFilterOption(filterInSession, option.key);
-                        optionInSession.state = option.value;
-                        options.add(optionInSession);
-                    }
-                    filterInSession.setOptions(options);
-                    filtersInSession.add(filterInSession);
-                }
-                session.setLibraryFilters(filtersInSession);
+                session.setLibraryFilters(asFilterObject(filters));
+                Main.libraryFiltersWidget.reloadPanels();
+                Main.libraryFiltersWidget.reloadElements();
             }
         }
         messageBuffer = null;
@@ -249,5 +239,21 @@ public class PlaybackSessionUpdateMessage extends Message {
             list.add(filterPair);
         }
         return list;
+    }
+
+    public static List<LibraryFilter> asFilterObject(List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters) {
+        List<LibraryFilter> filtersInSession = new ArrayList<>();
+        for(Pair<String, List<Pair<String, LibraryFilterOption.State>>> filter : filters) {
+            LibraryFilter filterInSession = new LibraryFilter(Library.INSTANCE, filter.key);
+            List<LibraryFilterOption> options = new ArrayList<>();
+            for(Pair<String, LibraryFilterOption.State> option : filter.value) {
+                LibraryFilterOption optionInSession = new LibraryFilterOption(filterInSession, option.key);
+                optionInSession.state = option.value;
+                options.add(optionInSession);
+            }
+            filterInSession.setOptions(options);
+            filtersInSession.add(filterInSession);
+        }
+        return filtersInSession;
     }
 }

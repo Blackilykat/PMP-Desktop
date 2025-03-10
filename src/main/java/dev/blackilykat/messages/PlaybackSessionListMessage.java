@@ -22,11 +22,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.Main;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.util.Pair;
+import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
 
 import java.time.Instant;
@@ -126,6 +128,8 @@ public class PlaybackSessionListMessage extends Message {
             connection.send(new PlaybackSessionCreateMessage(0, null));
             Audio.INSTANCE.currentSession.setOwnerId(connection.clientId);
         }
+        Main.libraryFiltersWidget.reloadPanels();
+        Main.libraryFiltersWidget.reloadElements();
     }
 
     private static void applyToPlaybackSession(PlaybackSession session, PlaybackSessionElement element) {
@@ -158,6 +162,7 @@ public class PlaybackSessionListMessage extends Message {
             session.lastSharedPosition = element.lastPositionUpdate;
             session.lastSharedPositionTime = element.lastUpdateTime;
             session.recalculatePosition(Instant.now());
+            session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters));
             PlaybackSessionUpdateMessage.messageBuffer = null;
         }
         session.acknowledgedByServer = true;

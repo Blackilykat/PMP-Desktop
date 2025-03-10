@@ -19,6 +19,7 @@ package dev.blackilykat.widgets.filters;
 
 import dev.blackilykat.Audio;
 import dev.blackilykat.Library;
+import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.widgets.Widget;
 
 import javax.swing.JMenuItem;
@@ -36,10 +37,13 @@ import java.util.Arrays;
 import java.util.List;
 
 public class LibraryFiltersWidget extends Widget {
-    public List<LibraryFilterPanel> panels = new ArrayList<>();
+    private List<LibraryFilterPanel> panels = new ArrayList<>();
+    public final Audio audio;
     public JPanel container = new JPanel();
 
-    public LibraryFiltersWidget() {
+    public LibraryFiltersWidget(Audio audio) {
+        this.audio = audio;
+
         this.add(container);
 
         layout.putConstraint(SpringLayout.NORTH, container, 0, SpringLayout.NORTH, this);
@@ -68,13 +72,19 @@ public class LibraryFiltersWidget extends Widget {
             }
         });
 
-        if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
-            for(LibraryFilter filter : Audio.INSTANCE.currentSession.getLibraryFilters()) {
-                panels.add(new LibraryFilterPanel(filter, this));
-            }
-        }
-
+        reloadPanels();
         reloadElements();
+    }
+
+    public void reloadPanels() {
+        panels.clear();
+        if(audio.currentSession == null) return;
+
+        for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
+            LibraryFilterPanel panel = new LibraryFilterPanel(filter, this);
+            panel.reloadOptions();
+            panels.add(panel);
+        }
     }
 
     public void reloadElements() {
@@ -115,7 +125,7 @@ public class LibraryFiltersWidget extends Widget {
                     Audio.INSTANCE.currentSession.addLibraryFilter(filter);
                 }
                 LibraryFilterPanel panel = new LibraryFilterPanel(filter, LibraryFiltersWidget.this);
-                panels.add(panel);
+                reloadPanels();
                 reloadElements();
                 panel.filter.library.reloadFilters();
             }

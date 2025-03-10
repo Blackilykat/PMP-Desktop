@@ -61,7 +61,7 @@ public class Main {
 
             GridBagConstraints constraints = new GridBagConstraints();
 
-            LibraryFiltersWidget libraryFiltersWidget = new LibraryFiltersWidget();
+            LibraryFiltersWidget libraryFiltersWidget = new LibraryFiltersWidget(Audio.INSTANCE);
             libraryFiltersWidget.setBackground(new Color(255, 0, 0));
             constraints.gridx = 0;
             constraints.gridy = 1;
