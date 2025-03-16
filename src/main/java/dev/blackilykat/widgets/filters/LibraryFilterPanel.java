@@ -129,9 +129,7 @@ public class LibraryFilterPanel extends JPanel {
 
         public OptionButton(LibraryFilterOption option) {
             this.option = option;
-            if(option.button == null) {
-                option.button = this;
-            }
+            option.button = this;
             String buttonText = switch(this.option.value) {
                 case LibraryFilter.OPTION_EVERYTHING -> "All";
                 case LibraryFilter.OPTION_UNKNOWN -> "Unknown";
