@@ -172,6 +172,8 @@ public class PlaybackSessionUpdateMessage extends Message {
                 session.setLibraryFilters(asFilterObject(filters, session));
                 Main.libraryFiltersWidget.reloadPanels();
                 Main.libraryFiltersWidget.reloadElements();
+                Library.INSTANCE.reloadFilters();
+                Library.INSTANCE.reloadSorting();
             }
         }
         messageBuffer = null;
