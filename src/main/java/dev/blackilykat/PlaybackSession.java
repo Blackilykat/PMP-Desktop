@@ -33,11 +33,12 @@ import java.util.Random;
 import java.util.Stack;
 
 public class PlaybackSession {
-    public Audio audio;
+    public static int idCounter = 0;
     private static final List<PlaybackSession> availableSessions = new ArrayList<>();
     private static final List<SessionListener> registerListeners = new ArrayList<>();
     private final List<SessionListener> unregisterListeners = new ArrayList<>();
     private List<LibraryFilter> filters = new ArrayList<>();
+    public Audio audio;
 
     private Random random = new Random();
 

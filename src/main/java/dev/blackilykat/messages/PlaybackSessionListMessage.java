@@ -91,6 +91,10 @@ public class PlaybackSessionListMessage extends Message {
                     applyToPlaybackSession(session, listedSession);
                     session.register();
                 }
+
+                if(listedSession.id > PlaybackSession.idCounter) {
+                    PlaybackSession.idCounter = listedSession.id;
+                }
             }
 
             if(shouldReselect) {
