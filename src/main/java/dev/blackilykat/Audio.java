@@ -152,11 +152,13 @@ public class Audio {
     }
 
     public void setCurrentSession(PlaybackSession session) {
-        if(this.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
-            this.currentSession.setOwnerId(-1);
-        }
-        if(session.getOwnerId() == -1 && ServerConnection.INSTANCE != null) {
-            session.setOwnerId(ServerConnection.INSTANCE.clientId);
+        if(ServerConnection.INSTANCE != null) {
+            if(this.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
+                this.currentSession.setOwnerId(-1);
+            }
+            if(session.getOwnerId() == -1) {
+                session.setOwnerId(ServerConnection.INSTANCE.clientId);
+            }
         }
 
         PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
