@@ -182,6 +182,9 @@ public class Audio {
         }
         PlaybackSessionUpdateMessage.messageBuffer = null;
         Main.playBarWidget.repaint();
+
+        Main.libraryFiltersWidget.reloadPanels();
+        Main.libraryFiltersWidget.reloadElements();
     }
 
     public void nextTrack() {
