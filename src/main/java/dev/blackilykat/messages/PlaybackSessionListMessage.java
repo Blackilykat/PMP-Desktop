@@ -101,25 +101,7 @@ public class PlaybackSessionListMessage extends Message {
                 PlaybackSession toSelect = null;
                 int highestRanking = -1;
                 for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
-                    int currentRanking;
-                    if(session.getOwnerId() != -1) {
-                        if(session.getPlaying()) {
-                            currentRanking = 5;
-                        } else if(session.getCurrentTrack() != null) {
-                            currentRanking = 4;
-                        } else {
-                            currentRanking = 3;
-                        }
-                    } else {
-                        // this case is very unlikely to happen and is probably unwanted, but it's currently possible so it should be handled
-                        if(session.getPlaying()) {
-                            currentRanking = 2;
-                        } else if(session.getCurrentTrack() != null) {
-                            currentRanking = 1;
-                        } else {
-                            currentRanking = 0;
-                        }
-                    }
+                    int currentRanking = session.getPrecedenceRanking();
                     if(currentRanking > highestRanking) {
                         toSelect = session;
                         highestRanking = currentRanking;

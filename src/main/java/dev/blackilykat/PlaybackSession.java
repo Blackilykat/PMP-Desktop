@@ -285,6 +285,42 @@ public class PlaybackSession {
         PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
     }
 
+    /**
+     * Returns the precedence ranking for this session.
+     * <br />
+     * The precedence ranking is obtained as follows:
+     * <ul>
+     *     <li>If the session has an owner and is playing, it has a ranking of 5</li>
+     *     <li>If the session has an owner and is paused, it has a ranking of 4</li>
+     *     <li>If the session has an owner and never played any track, it has a ranking of 3</li>
+     *     <li>If the session does not have an owner and is playing, it has a ranking of 2 (this scenario is unlikely but technically valid)</li>
+     *     <li>If the session does not have an owner and is paused, it has a ranking of 1</li>
+     *     <li>If the session does not have an owner and never played any track, it has a ranking of 0</li>
+     * </ul>
+     * <br />
+     * The precedence ranking is used to determine which session should be automatically selected if reselecting one is
+     * necessary (i.e. when first starting the client and connecting to the server)
+     */
+    public int getPrecedenceRanking() {
+        if(this.getOwnerId() != -1) {
+            if(this.getPlaying()) {
+                return 5;
+            } else if(this.getCurrentTrack() != null) {
+                return 4;
+            } else {
+                return 3;
+            }
+        } else {
+            if(this.getPlaying()) {
+                return 2;
+            } else if(this.getCurrentTrack() != null) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
 
     public enum ShuffleOption {
         ON,
