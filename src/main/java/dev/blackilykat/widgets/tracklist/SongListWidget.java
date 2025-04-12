@@ -24,6 +24,8 @@ import dev.blackilykat.Main;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
+import dev.blackilykat.messages.DataHeaderListMessage;
+import dev.blackilykat.util.Pair;
 import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.ScrollablePanel;
 import dev.blackilykat.widgets.Widget;
@@ -257,6 +259,14 @@ public class SongListWidget extends Widget {
                     dataHeaders.add(new TrackDataHeader(labelField.getText(), keyField.getText(), TrackDataEntry.getEntryType(keyField.getText(), Library.INSTANCE), 50, SongListWidget.this));
                     SongListWidget.this.refreshHeaders();
                     Main.songListWidget.refreshTracks();
+
+                    if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                        DataHeaderListMessage msg = new DataHeaderListMessage();
+                        for(TrackDataHeader header : SongListWidget.this.dataHeaders) {
+                            msg.headers.add(new Pair<>(header.metadataKey, header.name));
+                        }
+                        ServerConnection.INSTANCE.send(msg);
+                    }
                 } catch(Throwable e) {
                     e.printStackTrace();
                 }

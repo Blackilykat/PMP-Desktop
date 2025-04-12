@@ -35,9 +35,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class TrackDataHeader {
-    public final String name;
     public final String metadataKey;
     public final Class<? extends TrackDataEntry<?>> clazz;
+    public String name;
     public int width;
     public JPanel containedComponent = null;
     private JLabel component = null;
