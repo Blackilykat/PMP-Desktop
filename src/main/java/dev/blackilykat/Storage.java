@@ -63,9 +63,6 @@ public class Storage {
             }
             Storage.setTrackHeaders(headers);
 
-            Storage.setSortingHeader(Main.songListWidget.dataHeaders.indexOf(Main.songListWidget.orderingHeader));
-            Storage.setSortingOrder(Main.songListWidget.order);
-
             general.put("pendingLibraryActions", pendingLibraryActions);
 
             mvStore.close();
@@ -109,33 +106,6 @@ public class Storage {
             return;
         }
         general.put("trackHeaders", trackHeaders);
-    }
-
-    /**
-     * @return The index of the header that tracks are being sorted by currently. -1 if none.
-     */
-    public static int getSortingHeader() {
-        return (Integer) general.getOrDefault("sortingHeaderIndex", -1);
-    }
-
-    public static void setSortingHeader(int sortingHeader) {
-        if(sortingHeader < 0) {
-            general.remove("sortingHeaderIndex");
-            return;
-        }
-        general.put("sortingHeaderIndex", sortingHeader);
-    }
-
-    public static Order getSortingOrder() {
-        return (Order) general.getOrDefault("sortingOrder", Order.DESCENDING);
-    }
-
-    public static void setSortingOrder(Order order) {
-        if(order == null) {
-            general.remove("sortingOrder");
-            return;
-        }
-        general.put("sortingOrder", order);
     }
 
     public static Key getServerPublicKey() {

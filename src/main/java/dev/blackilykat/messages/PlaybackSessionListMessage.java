@@ -30,6 +30,7 @@ import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
+import dev.blackilykat.widgets.tracklist.Order;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -109,6 +110,9 @@ public class PlaybackSessionListMessage extends Message {
                 }
                 assert toSelect != null;
                 Audio.INSTANCE.setCurrentSession(toSelect);
+                Library.INSTANCE.reloadOptions();
+                Library.INSTANCE.reloadFilters();
+                Library.INSTANCE.reloadSorting();
             }
         } else {
             connection.send(new PlaybackSessionCreateMessage(0, null));
@@ -126,7 +130,16 @@ public class PlaybackSessionListMessage extends Message {
         if(hasNewerInfo && allowedToOverride) {
             session.recalculatePosition(Instant.now());
             session.setOwnerId(ServerConnection.INSTANCE.clientId);
-            PlaybackSessionUpdateMessage.doUpdate(session.id, session.getCurrentTrack().getFile().getName(), session.getShuffle(), session.getRepeat(), session.getPlaying(), session.getPosition(), PlaybackSessionUpdateMessage.getFiltersFromSession(session), ServerConnection.INSTANCE.clientId);
+            PlaybackSessionUpdateMessage.doUpdate(session.id,
+                    session.getCurrentTrack().getFile().getName(),
+                    session.getShuffle(),
+                    session.getRepeat(),
+                    session.getPlaying(),
+                    session.getPosition(),
+                    PlaybackSessionUpdateMessage.getFiltersFromSession(session),
+                    ServerConnection.INSTANCE.clientId,
+                    Main.songListWidget.dataHeaders.indexOf(session.getSortingHeader()),
+                    session.getSortingOrder());
         } else {
             Track track = null;
             for(Track t : Library.INSTANCE.tracks) {
@@ -135,7 +148,7 @@ public class PlaybackSessionListMessage extends Message {
                     break;
                 }
             }
-            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null);
+            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
             if(Audio.INSTANCE.currentSession == session) {
                 Audio.INSTANCE.startPlaying(track, false);
             } else {
@@ -149,6 +162,8 @@ public class PlaybackSessionListMessage extends Message {
             session.lastSharedPositionTime = element.lastUpdateTime;
             session.recalculatePosition(Instant.now());
             session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
+            session.setSortingHeader(Main.songListWidget.dataHeaders.get(element.sortingHeader));
+            session.setSortingOrder(element.sortingOrder);
             PlaybackSessionUpdateMessage.messageBuffer = null;
         }
         session.acknowledgedByServer = true;
@@ -203,6 +218,12 @@ public class PlaybackSessionListMessage extends Message {
                 });
             }
 
+            JsonElement sortingHeaderElem = obj.get("sortingHeader");
+            int sortingHeader = sortingHeaderElem == null ? 1 : sortingHeaderElem.getAsInt();
+
+            JsonElement sortingOrderElem = obj.get("sortingOrder");
+            Order sortingOrder = sortingOrderElem == null ? Order.ASCENDING : Order.valueOf(sortingOrderElem.getAsString());
+
             PlaybackSessionElement element = new PlaybackSessionElement(
                     id,
                     track,
@@ -212,6 +233,8 @@ public class PlaybackSessionListMessage extends Message {
                     lastPositionUpdate,
                     owner,
                     filters,
+                    sortingHeader,
+                    sortingOrder,
                     lastUpdateTime
             );
             elements.add(element);
@@ -229,9 +252,22 @@ public class PlaybackSessionListMessage extends Message {
         public int owner;
         public Instant lastUpdateTime;
         public List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters;
+        public int sortingHeader;
+        public Order sortingOrder;
 
-        public PlaybackSessionElement(int id, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat,
-                                      boolean playing, int lastPositionUpdate, int owner, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters,  Instant lastUpdateTime) {
+        public PlaybackSessionElement(
+                int id,
+                String track,
+                PlaybackSession.ShuffleOption shuffle,
+                PlaybackSession.RepeatOption repeat,
+                boolean playing,
+                int lastPositionUpdate,
+                int owner,
+                List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters,
+                int sortingHeader,
+                Order sortingOrder,
+                Instant lastUpdateTime
+        ) {
             this.id = id;
             this.track = track;
             this.shuffle = shuffle;
@@ -241,6 +277,8 @@ public class PlaybackSessionListMessage extends Message {
             this.owner = owner;
             this.filters = filters;
             this.lastUpdateTime = lastUpdateTime;
+            this.sortingHeader = sortingHeader;
+            this.sortingOrder = sortingOrder;
         }
     }
 }

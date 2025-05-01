@@ -24,6 +24,7 @@ import dev.blackilykat.Library;
 import dev.blackilykat.Main;
 import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
+import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.util.Pair;
@@ -31,6 +32,8 @@ import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.playbar.TimeBar;
+import dev.blackilykat.widgets.tracklist.Order;
+import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,6 +61,8 @@ public class PlaybackSessionUpdateMessage extends Message {
     public Instant time;
     public int sessionId;
     public List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters;
+    public Integer sortingHeader;
+    public Order sortingOrder;
 
 
     /**
@@ -69,7 +74,19 @@ public class PlaybackSessionUpdateMessage extends Message {
      * @param position The new position, null if unchanged (This should not be sent during normal progression of a track,
      *                 but only at jumps)
      */
-    public PlaybackSessionUpdateMessage(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, Integer owner, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters, Instant time) {
+    public PlaybackSessionUpdateMessage(
+            int sessionId,
+            String track,
+            PlaybackSession.ShuffleOption shuffle,
+            PlaybackSession.RepeatOption repeat,
+            Boolean playing,
+            Integer position,
+            Integer owner,
+            List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters,
+            Integer sortingHeader,
+            Order sortingOrder,
+            Instant time
+    ) {
         this.sessionId = sessionId;
         this.track = track;
         this.shuffle = shuffle;
@@ -78,6 +95,8 @@ public class PlaybackSessionUpdateMessage extends Message {
         this.position = position;
         this.owner = owner;
         this.filters = filters;
+        this.sortingHeader = sortingHeader;
+        this.sortingOrder = sortingOrder;
         this.time = time;
     }
 
@@ -113,69 +132,97 @@ public class PlaybackSessionUpdateMessage extends Message {
         if(filters != null) {
             object.add("filters", Json.GSON.toJsonTree(filters));
         }
+        if(sortingHeader != null) {
+            object.addProperty("sortingHeader", sortingHeader);
+        }
+        if(sortingOrder != null) {
+            object.addProperty("sortingOrder", sortingOrder.toString());
+        }
     }
 
     @Override
     public void handle(ServerConnection connection) {
         // prevent updates echoing back to the server
-        messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null);
-        for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
-            if(!session.acknowledgedByServer || session.id != sessionId) continue;
-            if(position != null) {
-                session.lastSharedPosition = position;
-                session.lastSharedPositionTime = time;
-                session.recalculatePosition(Instant.now());
-            }
-            if(track != null) {
-                for(Track t : Library.INSTANCE.tracks) {
-                    if(!t.getFile().getName().equals(track)) continue;
-                    if(Audio.INSTANCE.currentSession == session) {
-                        Audio.INSTANCE.startPlaying(t, false);
-                    } else {
-                        session.setCurrentTrack(t);
-                    }
+        messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
+
+        PlaybackSession session = null;
+        for(PlaybackSession sessionInLoop : PlaybackSession.getAvailableSessions()) {
+            if(!sessionInLoop.acknowledgedByServer || sessionInLoop.id != sessionId) continue;
+            session = sessionInLoop;
+            break;
+        }
+        if(session == null) return;
+
+        boolean shouldReloadSorting = false;
+
+        if(position != null) {
+            session.lastSharedPosition = position;
+            session.lastSharedPositionTime = time;
+            session.recalculatePosition(Instant.now());
+        }
+        if(track != null) {
+            for(Track t : Library.INSTANCE.tracks) {
+                if(!t.getFile().getName().equals(track)) continue;
+                if(Audio.INSTANCE.currentSession == session) {
+                    Audio.INSTANCE.startPlaying(t, false);
+                } else {
+                    session.setCurrentTrack(t);
                 }
-            }
-            if(shuffle != null) {
-                session.setShuffle(shuffle);
-            }
-            if(repeat != null) {
-                session.setRepeat(repeat);
-            }
-            if(playing != null) {
-                if(position == null) {
-                    if(session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
-                        session.recalculatePosition(time);
-                    }
-
-                    session.lastSharedPosition = session.getPosition();
-
-                    if(session.getOwnerId() == ServerConnection.INSTANCE.clientId) {
-                        session.lastSharedPositionTime = Instant.now();
-                        connection.send(new PlaybackSessionUpdateMessage(sessionId, null, null, null, null, session.lastSharedPosition, null, null, session.lastSharedPositionTime));
-                    } else {
-                        session.lastSharedPositionTime = time;
-                        if(playing) {
-                            // can get redundant but it's fine. If I didn't set this to true the next line would be useless
-                            session.setPlaying(true);
-                            session.recalculatePosition(Instant.now());
-                        }
-                    }
-                }
-
-                session.setPlaying(playing);
-            }
-            if(owner != null) {
-                session.setOwnerId(owner);
-            }
-            if(filters != null) {
-                session.setLibraryFilters(asFilterObject(filters, session));
-                Main.libraryFiltersWidget.reloadPanels();
-                Main.libraryFiltersWidget.reloadElements();
-                Library.INSTANCE.reloadFilters();
-                Library.INSTANCE.reloadSorting();
             }
         }
+        if(shuffle != null) {
+            session.setShuffle(shuffle);
+        }
+        if(repeat != null) {
+            session.setRepeat(repeat);
+        }
+        if(playing != null) {
+            if(position == null) {
+                if(session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
+                    session.recalculatePosition(time);
+                }
+
+                session.lastSharedPosition = session.getPosition();
+
+                if(session.getOwnerId() == ServerConnection.INSTANCE.clientId) {
+                    session.lastSharedPositionTime = Instant.now();
+                    connection.send(new PlaybackSessionUpdateMessage(sessionId, null, null, null, null, session.lastSharedPosition, null, null, null, null, session.lastSharedPositionTime));
+                } else {
+                    session.lastSharedPositionTime = time;
+                    if(playing) {
+                        // can get redundant but it's fine. If I didn't set this to true the next line would be useless
+                        session.setPlaying(true);
+                        session.recalculatePosition(Instant.now());
+                    }
+                }
+            }
+
+            session.setPlaying(playing);
+        }
+        if(owner != null) {
+            session.setOwnerId(owner);
+        }
+        if(filters != null) {
+            session.setLibraryFilters(asFilterObject(filters, session));
+            Main.libraryFiltersWidget.reloadPanels();
+            Main.libraryFiltersWidget.reloadElements();
+            Library.INSTANCE.reloadFilters();
+            shouldReloadSorting = true;
+        }
+        if(sortingHeader != null) try {
+            session.setSortingHeader(Main.songListWidget.dataHeaders.get(sortingHeader));
+            shouldReloadSorting = true;
+        } catch(IndexOutOfBoundsException ignored) {
+        }
+        if(sortingOrder != null) {
+            session.setSortingOrder(sortingOrder);
+            shouldReloadSorting = true;
+        }
+
+        if(shouldReloadSorting) {
+            Library.INSTANCE.reloadSorting();
+        }
+
         messageBuffer = null;
         Main.playBarWidget.repaint();
     }
@@ -210,11 +257,24 @@ public class PlaybackSessionUpdateMessage extends Message {
                 json.has("position") ? json.get("position").getAsInt() : null,
                 json.has("owner") ? json.get("owner").getAsInt() : null,
                 filters,
+                json.has("sortingHeader") ? json.get("sortingHeader").getAsInt() : null,
+                json.has("sortingOrder") ? Order.valueOf(json.get("sortingOrder").getAsString()) : null,
                 json.has("time") ? Instant.ofEpochMilli(json.get("time").getAsLong()) : Instant.now()
         );
     }
 
-    public static void doUpdate(int sessionId, String track, PlaybackSession.ShuffleOption shuffle, PlaybackSession.RepeatOption repeat, Boolean playing, Integer position, List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters, Integer owner) {
+    public static void doUpdate(
+            int sessionId,
+            String track,
+            PlaybackSession.ShuffleOption shuffle,
+            PlaybackSession.RepeatOption repeat,
+            Boolean playing,
+            Integer position,
+            List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> filters,
+            Integer owner,
+            Integer sortingHeader,
+            Order sortingOrder
+    ) {
         if(messageBuffer != null) {
             messageBuffer.sessionId = sessionId;
             if(track != null) messageBuffer.track = track;
@@ -224,9 +284,11 @@ public class PlaybackSessionUpdateMessage extends Message {
             if(position != null) messageBuffer.position = position;
             if(filters != null) messageBuffer.filters = filters;
             if(owner != null) messageBuffer.owner = owner;
+            if(sortingHeader != null) messageBuffer.sortingHeader = sortingHeader;
+            if(sortingOrder != null) messageBuffer.sortingOrder = sortingOrder;
         } else {
             if(ServerConnection.INSTANCE != null) {
-                ServerConnection.INSTANCE.send(new PlaybackSessionUpdateMessage(sessionId, track, shuffle, repeat, playing, position, owner, filters, Instant.now()));
+                ServerConnection.INSTANCE.send(new PlaybackSessionUpdateMessage(sessionId, track, shuffle, repeat, playing, position, owner, filters, sortingHeader, sortingOrder, Instant.now()));
             }
         }
     }

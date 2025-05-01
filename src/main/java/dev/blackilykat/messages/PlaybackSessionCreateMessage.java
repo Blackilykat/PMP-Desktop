@@ -68,7 +68,7 @@ public class PlaybackSessionCreateMessage extends Message {
                 session.acknowledgedByServer = true;
                 session.callUpdateListeners();
                 if(session.getOwnerId() == connection.clientId) {
-                    connection.send(new PlaybackSessionUpdateMessage(responseId, null, null, null, null, null, connection.clientId, null, null));
+                    connection.send(new PlaybackSessionUpdateMessage(responseId, null, null, null, null, null, connection.clientId, null, null, null, null));
                 }
                 shouldCreate = false;
                 break;

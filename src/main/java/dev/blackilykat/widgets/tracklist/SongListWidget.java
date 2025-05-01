@@ -63,9 +63,6 @@ public class SongListWidget extends Widget {
     public int dragResizeLine = -1;
     public TrackDataHeader draggedHeader = null;
 
-    public TrackDataHeader orderingHeader = null;
-    public Order order = Order.DESCENDING;
-
     static {
         trackListPopupMenu.add(getAddTrackPopupItem());
     }
@@ -86,13 +83,6 @@ public class SongListWidget extends Widget {
             dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
         }
 
-        int sortingHeaderIndex = Storage.getSortingHeader();
-        if(sortingHeaderIndex >= 0 && sortingHeaderIndex < dataHeaders.size()) {
-            this.orderingHeader = dataHeaders.get(sortingHeaderIndex);
-        }
-
-        this.order = Storage.getSortingOrder();
-
         this.add(headerPanel);
         layout.putConstraint(SpringLayout.NORTH, headerPanel, 0, SpringLayout.NORTH, this);
         layout.putConstraint(SpringLayout.SOUTH, headerPanel, 32, SpringLayout.NORTH, this);
@@ -106,8 +96,6 @@ public class SongListWidget extends Widget {
         layout.putConstraint(SpringLayout.WEST, scrollPane, 0, SpringLayout.WEST, this);
         layout.putConstraint(SpringLayout.SOUTH, scrollPane, 0, SpringLayout.SOUTH, this);
         layout.putConstraint(SpringLayout.EAST, scrollPane, 0, SpringLayout.EAST, this);
-
-
 
         scrollPaneContents.addMouseListener(new MouseAdapter() {
             @Override

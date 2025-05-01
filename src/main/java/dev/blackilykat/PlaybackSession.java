@@ -22,8 +22,10 @@ import dev.blackilykat.util.Icons;
 import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
-import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
+import dev.blackilykat.widgets.tracklist.Order;
+import dev.blackilykat.widgets.tracklist.SongListWidget;
+import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -64,9 +66,11 @@ public class PlaybackSession {
     public int id;
 
     private int ownerId = -1;
-    public boolean wasOwner = false;
 
     public boolean acknowledgedByServer = false;
+
+    private TrackDataHeader sortingHeader = null;
+    private Order sortingOrder = Order.DESCENDING;
 
     public PlaybackSession(Audio audio, int id) {
         this.audio = audio;
@@ -82,18 +86,18 @@ public class PlaybackSession {
     public void addLibraryFilter(LibraryFilter filter) {
         filters.add(filter);
         List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> thing = PlaybackSessionUpdateMessage.getFiltersFromSession(this);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, thing, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, thing, null, null, null);
     }
 
     public void removeLibraryFilter(LibraryFilter filter) {
         filters.remove(filter);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
     public void setLibraryFilters(Collection<LibraryFilter> newFilters) {
         filters.clear();
         filters.addAll(newFilters);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
     public int getPosition() {
@@ -105,7 +109,7 @@ public class PlaybackSession {
         if(isJump) {
             lastSharedPosition = position;
             lastSharedPositionTime = Instant.now();
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null, null);
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null, null, null, null);
             callUpdateListeners();
         }
     }
@@ -125,7 +129,7 @@ public class PlaybackSession {
 
     public void setPlaying(boolean playing) {
         this.playing = playing;
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null, null, null, null);
         if(Audio.INSTANCE.currentSession == this) {
             PlayBarWidget.setPlaying(playing);
         }
@@ -139,7 +143,7 @@ public class PlaybackSession {
     public void setOwnerId(int ownerId) {
         this.ownerId = ownerId;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, ownerId);
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, ownerId, null, null);
         }
         callUpdateListeners();
     }
@@ -172,6 +176,28 @@ public class PlaybackSession {
     }
     public void registerUnregisterListener(SessionListener listener) {
         unregisterListeners.add(listener);
+    }
+
+    public TrackDataHeader getSortingHeader() {
+        return sortingHeader;
+    }
+
+    public void setSortingHeader(TrackDataHeader sortingHeader) {
+        this.sortingHeader = sortingHeader;
+        if(acknowledgedByServer) {
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, Main.songListWidget.dataHeaders.indexOf(sortingHeader), null);
+        }
+    }
+
+    public Order getSortingOrder() {
+        return sortingOrder;
+    }
+
+    public void setSortingOrder(Order sortingOrder) {
+        this.sortingOrder = sortingOrder;
+        if(acknowledgedByServer) {
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, null, sortingOrder);
+        }
     }
 
     public interface SessionListener {
@@ -235,7 +261,7 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null, null, null, null);
         callUpdateListeners();
     }
 
@@ -251,7 +277,7 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.REPEAT_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null, null, null, null);
         callUpdateListeners();
     }
 
@@ -282,7 +308,7 @@ public class PlaybackSession {
     }
 
     public void sendFilterUpdate() {
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null);
+        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
     /**

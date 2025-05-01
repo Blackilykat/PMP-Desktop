@@ -82,12 +82,12 @@ public class TrackDataHeader {
                 wasPressing = false;
 
                 if(songListWidget.draggedHeader == null) {
-                    if(songListWidget.orderingHeader == null || songListWidget.orderingHeader != TrackDataHeader.this) {
-                        songListWidget.orderingHeader = TrackDataHeader.this;
-                        songListWidget.order = Order.DESCENDING;
+                    if(songListWidget.audio.currentSession.getSortingHeader() != TrackDataHeader.this) {
+                        songListWidget.audio.currentSession.setSortingHeader(TrackDataHeader.this);
+                        songListWidget.audio.currentSession.setSortingOrder(Order.DESCENDING);
                     } else {
                         // a lil confusing to read but it just flips it
-                        songListWidget.order = songListWidget.order == Order.DESCENDING ? Order.ASCENDING : Order.DESCENDING;
+                        songListWidget.audio.currentSession.setSortingOrder(songListWidget.audio.currentSession.getSortingOrder() == Order.DESCENDING ? Order.ASCENDING : Order.DESCENDING);
                     }
                     lastPressedX = -1;
                     // repainting the headers alone clears the lines between them, so you have to redraw the whole thing
@@ -210,10 +210,10 @@ public class TrackDataHeader {
             if(lastKnownWidth != parent.width) {
                 updateCoordinates();
             }
-            if(parent.songListWidget.orderingHeader == parent) {
+            if(parent.songListWidget.audio.currentSession.getSortingHeader() == parent) {
                 ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setColor(Color.GRAY);
-                if(parent.songListWidget.order == Order.ASCENDING) {
+                if(parent.songListWidget.audio.currentSession.getSortingOrder() == Order.ASCENDING) {
                     g.fillPolygon(arrowCoordinatesX, ascendingArrowCoordinatesY, 3);
                 } else {
                     g.fillPolygon(arrowCoordinatesX, descendingArrowCoordinatesY, 3);
