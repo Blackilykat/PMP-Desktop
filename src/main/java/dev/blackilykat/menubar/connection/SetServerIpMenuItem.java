@@ -67,7 +67,6 @@ public class SetServerIpMenuItem extends JMenuItem {
                         ServerConnection.INSTANCE.disconnect(-1);
                     }
                     ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
-                    ServerConnection.INSTANCE.start();
                 } catch(NumberFormatException f) {
                     continue;
                 } catch(IOException ex) {

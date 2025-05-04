@@ -37,7 +37,6 @@ public class ConnectToServerMenuItem extends JMenuItem {
             int filePort = Storage.getServerFilePort();
             try {
                 ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
-                ServerConnection.INSTANCE.start();
             } catch(IOException ex) {
                 ex.printStackTrace();
             }

@@ -29,6 +29,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,6 +52,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -120,6 +125,7 @@ public class ServerConnection {
         } catch(NoSuchAlgorithmException | KeyManagementException e) {
             throw new RuntimeException(e);
         }
+
         try {
             this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(InetAddress.getByName(ip), mainPort);
             this.inputStream = socket.getInputStream();
@@ -128,11 +134,36 @@ public class ServerConnection {
             disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             throw e;
         }
+
+        startSending();
+        startReading();
+
+        {
+            JPasswordField passwordField = new JPasswordField(16);
+            JPanel panel = new JPanel();
+            panel.add(new JLabel("Enter the password: "));
+            panel.add(passwordField);
+            int response = JOptionPane.showOptionDialog(null, panel, "Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, 0);
+            if(response != 0) {
+                this.disconnect(-1);
+                return;
+            }
+
+            {
+                char[] password = passwordField.getPassword();
+                this.send(new LoginMessage(new String(password)));
+                Arrays.fill(password, (char) 0);
+            }
+
+        }
+
     }
 
-    public void start() {
-        messageSendingThread.start();
+    public void startReading() {
         inputReadingThread.start();
+    }
+    public void startSending() {
+        messageSendingThread.start();
     }
 
     public void disconnect(long reconnectInMilliseconds) {
@@ -153,7 +184,6 @@ public class ServerConnection {
                 public void run() {
                     try {
                         ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
-                        ServerConnection.INSTANCE.start();
                     } catch(IOException ignored) {}
                 }
             }, reconnectInMilliseconds);
@@ -264,7 +294,9 @@ public class ServerConnection {
                 while (true) {
                     Message message = messageQueue.take();
                     String messageStr = (message.withMessageId(getMessageIdCounter()).toJson() + "\n");
-                    System.out.println("Sending message: " + messageStr);
+                    if(!message.getMessageType().equals(LoginMessage.MESSAGE_TYPE)) {
+                        System.out.println("Sending message: " + messageStr);
+                    }
                     outputStream.write(messageStr.getBytes(StandardCharsets.UTF_8));
                     synchronized(message) {
                         message.notifyAll();
@@ -315,6 +347,7 @@ public class ServerConnection {
                                 case PlaybackSessionUpdateMessage.MESSAGE_TYPE -> PlaybackSessionUpdateMessage.fromJson(json);
                                 case PlaybackSessionListMessage.MESSAGE_TYPE -> PlaybackSessionListMessage.fromJson(json);
                                 case DataHeaderListMessage.MESSAGE_TYPE -> DataHeaderListMessage.fromJson(json);
+                                case LoginMessage.MESSAGE_TYPE -> LoginMessage.fromJson(json);
                                 default -> {
                                     throw new MessageInvalidContentsException("Unknown message_type '"+messageType+"'");
                                 }

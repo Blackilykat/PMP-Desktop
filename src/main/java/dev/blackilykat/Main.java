@@ -120,7 +120,6 @@ public class Main {
 
         try {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
-            ServerConnection.INSTANCE.start();
         } catch (IOException e) {
             System.out.println("Could not connect to server!");
         }
