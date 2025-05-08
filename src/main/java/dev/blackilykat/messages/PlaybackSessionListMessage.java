@@ -162,7 +162,9 @@ public class PlaybackSessionListMessage extends Message {
             session.lastSharedPositionTime = element.lastUpdateTime;
             session.recalculatePosition(Instant.now());
             session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
-            session.setSortingHeader(Main.songListWidget.dataHeaders.get(element.sortingHeader));
+            if(!Main.songListWidget.dataHeaders.isEmpty()) {
+                session.setSortingHeader(Main.songListWidget.dataHeaders.get(element.sortingHeader));
+            }
             session.setSortingOrder(element.sortingOrder);
             PlaybackSessionUpdateMessage.messageBuffer = null;
         }
