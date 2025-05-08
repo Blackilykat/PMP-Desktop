@@ -43,6 +43,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.Key;
@@ -207,7 +208,7 @@ public class ServerConnection {
             if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
-            URL url = new URI("https://" + ip + ":" + filePort + "/" + name).toURL();
+            URL url = new URI("https://" + ip + ":" + filePort + "/" + URLEncoder.encode(name, StandardCharsets.UTF_8)).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
             connection.setHostnameVerifier((hostname, session) -> true);
@@ -239,7 +240,7 @@ public class ServerConnection {
             if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
-            URL url = new URI( "https://" + ip + ":" + filePort + "/" + name + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
+            URL url = new URI( "https://" + ip + ":" + filePort + "/" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
             connection.setHostnameVerifier((hostname, session) -> true);

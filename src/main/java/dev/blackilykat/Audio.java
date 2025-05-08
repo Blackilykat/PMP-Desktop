@@ -366,7 +366,7 @@ public class Audio {
                             seconds = 0;
                         }
                         mpris.setMetadata(new Metadata.Builder()
-                                .setTrackID(new DBusPath("/PMPDesktop/" + track.getFile().getName().replace(".flac", "")))
+                                .setTrackID(new DBusPath("/PMPDesktop/" + track.getFile().getName().replace(".flac", "").replaceAll("[^A-Za-z0-9_]", "")))
                                 .setLength((int) (seconds * 1_000_000))
                                 .setArtURL(track.getFile().toURI())
                                 // I am genuinely sorry for this. I blame java. fuck you java.
