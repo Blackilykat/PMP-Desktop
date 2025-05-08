@@ -62,12 +62,12 @@ public interface TrackDataEntry<T extends TrackDataEntry<T>> {
     }
 
     static Class<? extends TrackDataEntry<?>> getEntryType(String key, Library library) {
-        if(key.equals("duration")) return TimeTrackDataEntry.class;
+        if(key.equalsIgnoreCase("duration")) return TimeTrackDataEntry.class;
 
         boolean withKey = false, numbersOnly = true;
         mainLoop: for(Track track : library.tracks) {
             for(Pair<String, String> metadatum : track.metadata) {
-                if(!metadatum.key.equals(key)) continue;
+                if(!metadatum.key.equalsIgnoreCase(key)) continue;
                 withKey = true;
                 for(int i = 0; i < metadatum.value.length(); i++) {
                     char c = metadatum.value.charAt(i);

@@ -132,11 +132,11 @@ public class TrackLabel extends JPanel {
 
         if(track == null) return;
         for(Pair<String, String> metadatum : track.metadata) {
-            if(metadatum.key.equals("title")) {
+            if(metadatum.key.equalsIgnoreCase("title")) {
                 this.title = metadatum.value;
                 continue;
             }
-            if(metadatum.key.equals("artist")) {
+            if(metadatum.key.equalsIgnoreCase("artist")) {
                 artists.add(metadatum.value);
             }
         }

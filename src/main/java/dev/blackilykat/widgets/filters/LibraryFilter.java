@@ -101,7 +101,7 @@ public class LibraryFilter {
                     boolean hasKey = false;
                     System.out.println("Filtering for track " + track.title);
                     for(Pair<String, String> pair : track.metadata) {
-                        if(!key.equals(pair.key)) continue;
+                        if(!key.equalsIgnoreCase(pair.key)) continue;
                         System.out.println("key " + key + " value " + pair.value);
 
                         hasKey = true;
@@ -127,7 +127,7 @@ public class LibraryFilter {
                 boolean hasKey = false;
 
                 for(Pair<String, String> pair : track.metadata) {
-                    if(!key.equals(pair.key)) continue;
+                    if(!key.equalsIgnoreCase(pair.key)) continue;
 
                     hasKey = true;
                     if(option.value.equals(pair.value)) {
@@ -156,7 +156,7 @@ public class LibraryFilter {
             boolean hasKey = false;
 
             for(Pair<String, String> pair : track.metadata) {
-                if(!key.equals(pair.key)) continue;
+                if(!key.equalsIgnoreCase(pair.key)) continue;
 
                 hasKey = true;
                 LibraryFilterOption option = new LibraryFilterOption(this, pair.value);

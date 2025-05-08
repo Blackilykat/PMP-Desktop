@@ -53,7 +53,7 @@ public record IntegerTrackDataEntry(Integer data) implements TrackDataEntry<Inte
 
     public static IntegerTrackDataEntry create(Track track, TrackDataHeader header) {
         for(Pair<String, String> metadatum : track.metadata) {
-            if(metadatum.key.equals(header.metadataKey)) {
+            if(metadatum.key.equalsIgnoreCase(header.metadataKey)) {
                 return new IntegerTrackDataEntry(Integer.valueOf(metadatum.value));
             }
         }
