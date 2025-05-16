@@ -44,11 +44,14 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class SongListWidget extends Widget {
@@ -180,6 +183,20 @@ public class SongListWidget extends Widget {
                     }
                     List<File> files = recurseInDirectories(chooser.getSelectedFiles());
                     for(File originalFile : files) {
+                        if(!originalFile.getName().endsWith(".flac")) {
+                            System.out.println("Skipping " + originalFile.getName() + " (no .flac extension)");
+                            continue;
+                        }
+
+                        try(InputStream is = new FileInputStream(originalFile)) {
+                            byte[] expectedBtyes = new byte[]{'f', 'L', 'a', 'C'};
+                            byte[] actualBytes = new byte[4];
+                            if(is.read(actualBytes) < 4 || !Arrays.equals(expectedBtyes, actualBytes)) {
+                                System.out.println("Skipping " + originalFile.getName() + " (no fLaC magic)");
+                                continue;
+                            }
+                        }
+
                         File newFile = new File(Storage.LIBRARY, Library.getNewFileName(originalFile));
                         try {
                             Files.copy(originalFile.toPath(), newFile.toPath());
