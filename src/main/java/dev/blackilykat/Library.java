@@ -86,6 +86,9 @@ public class Library {
         reloadOptions();
         reloadFilters();
         reloadSorting();
+        if(Main.songListWidget != null) {
+            Main.songListWidget.refreshTracks();
+        }
     }
 
     public void reloadOptions() {
