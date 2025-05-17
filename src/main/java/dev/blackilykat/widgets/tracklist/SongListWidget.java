@@ -53,6 +53,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SongListWidget extends Widget {
     public final Audio audio;
@@ -65,6 +67,7 @@ public class SongListWidget extends Widget {
     // -1: don't show, other: x coordinate of the line that will display while resizing
     public int dragResizeLine = -1;
     public TrackDataHeader draggedHeader = null;
+    private static ExecutorService addTrackExecutor = Executors.newSingleThreadExecutor();
 
     static {
         trackListPopupMenu.add(getAddTrackPopupItem());
@@ -173,50 +176,53 @@ public class SongListWidget extends Widget {
             }
 
             private void run() {
-                try {
-                    JFileChooser chooser = new JFileChooser();
-                    chooser.setMultiSelectionEnabled(true);
-                    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-                    int returnValue = chooser.showOpenDialog(null);
-                    if(returnValue != JFileChooser.APPROVE_OPTION) {
-                        return;
-                    }
-                    List<File> files = recurseInDirectories(chooser.getSelectedFiles());
-                    for(File originalFile : files) {
-                        if(!originalFile.getName().endsWith(".flac")) {
-                            System.out.println("Skipping " + originalFile.getName() + " (no .flac extension)");
-                            continue;
+                addTrackExecutor.submit(() -> {
+                    try {
+                        JFileChooser chooser = new JFileChooser();
+                        chooser.setMultiSelectionEnabled(true);
+                        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+                        int returnValue = chooser.showOpenDialog(null);
+                        if(returnValue != JFileChooser.APPROVE_OPTION) {
+                            return;
                         }
-
-                        try(InputStream is = new FileInputStream(originalFile)) {
-                            byte[] expectedBtyes = new byte[]{'f', 'L', 'a', 'C'};
-                            byte[] actualBytes = new byte[4];
-                            if(is.read(actualBytes) < 4 || !Arrays.equals(expectedBtyes, actualBytes)) {
-                                System.out.println("Skipping " + originalFile.getName() + " (no fLaC magic)");
+                        List<File> files = recurseInDirectories(chooser.getSelectedFiles());
+                        for(File originalFile : files) {
+                            if(!originalFile.getName().endsWith(".flac")) {
+                                System.out.println("Skipping " + originalFile.getName() + " (no .flac extension)");
                                 continue;
+                            }
+
+                            try(InputStream is = new FileInputStream(originalFile)) {
+                                byte[] expectedBtyes = new byte[]{'f', 'L', 'a', 'C'};
+                                byte[] actualBytes = new byte[4];
+                                if(is.read(actualBytes) < 4 || !Arrays.equals(expectedBtyes, actualBytes)) {
+                                    System.out.println("Skipping " + originalFile.getName() + " (no fLaC magic)");
+                                    continue;
+                                }
+                            }
+
+                            File newFile = new File(Storage.LIBRARY, Library.getNewFileName(originalFile));
+                            try {
+                                Files.copy(originalFile.toPath(), newFile.toPath());
+                            } catch(FileAlreadyExistsException e) {
+                                //TODO prompt user for confirmation, for now it's a good enough guess to not add it since it
+                                //     takes the filename, artist and album to build the filename
+                                continue;
+                            }
+
+                            Library.INSTANCE.reloadAll();
+
+                            if(ServerConnection.INSTANCE != null) {
+                                ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
+                            } else {
+                                Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
                             }
                         }
 
-                        File newFile = new File(Storage.LIBRARY, Library.getNewFileName(originalFile));
-                        try {
-                            Files.copy(originalFile.toPath(), newFile.toPath());
-                        } catch(FileAlreadyExistsException e) {
-                            //TODO prompt user for confirmation, for now it's a good enough guess to not add it since it
-                            //     takes the filename, artist and album to build the filename
-                            continue;
-                        }
-
-                        if(ServerConnection.INSTANCE != null) {
-                            ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
-                        } else {
-                            Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
-                        }
+                    } catch(IOException e) {
+                        e.printStackTrace();
                     }
-                    Library.INSTANCE.reloadAll();
-
-                } catch(IOException e) {
-                    e.printStackTrace();
-                }
+                });
             }
         });
         return item;
