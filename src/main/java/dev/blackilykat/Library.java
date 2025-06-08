@@ -122,6 +122,9 @@ public class Library {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void reloadSorting() {
+        if(Main.songListWidget != null) {
+            Main.songListWidget.refreshTracks();
+        }
         if(audio == null || audio.currentSession == null || audio.currentSession.getSortingHeader() == null) return;
 
         int dataIndex = Main.songListWidget.dataHeaders.indexOf(audio.currentSession.getSortingHeader());
