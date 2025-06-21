@@ -255,7 +255,6 @@ public class SongListWidget extends Widget {
 
             private void run() {
                 try {
-                    // ask for label (string) and key (string)
                     JTextField labelField = new JTextField(15);
                     JTextField keyField = new JTextField(15);
                     int r = JOptionPane.showConfirmDialog(null,

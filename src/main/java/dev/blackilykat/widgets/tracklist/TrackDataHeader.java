@@ -30,8 +30,10 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JTextField;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -68,7 +70,8 @@ public class TrackDataHeader {
         this.width = width;
         this.songListWidget = songListWidget;
 
-        JMenuItem removeItem = new JMenuItem("Remove header");
+        popupMenu.add(songListWidget.getAddHeaderPopupItem());
+        JMenuItem removeItem = new JMenuItem("Remove");
         removeItem.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
@@ -88,9 +91,47 @@ public class TrackDataHeader {
             }
         });
         popupMenu.add(removeItem);
+        JMenuItem editItem = new JMenuItem("Edit");
+        editItem.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                JTextField labelField = new JTextField(15);
+                labelField.setText(TrackDataHeader.this.name);
+                JTextField keyField = new JTextField(15);
+                keyField.setText(TrackDataHeader.this.metadataKey);
+                int r = JOptionPane.showConfirmDialog(null,
+                        new Object[]{"Label: ", labelField, "Key: ", keyField},
+                        "Edit header",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE);
+
+                if(r != JOptionPane.YES_OPTION) {
+                    return;
+                }
+
+                TrackDataHeader.this.name = labelField.getText();
+                TrackDataHeader.this.metadataKey = keyField.getText();
+                if(TrackDataHeader.this.component != null) {
+                    TrackDataHeader.this.component.setText(TrackDataHeader.this.name);
+                }
+
+                songListWidget.refreshHeaders();
+                Main.songListWidget.refreshTracks();
+
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                    DataHeaderListMessage msg = new DataHeaderListMessage();
+                    for(TrackDataHeader header : songListWidget.dataHeaders) {
+                        msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
+                    }
+                    ServerConnection.INSTANCE.send(msg);
+                    ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
+                }
+            }
+        });
+        popupMenu.add(editItem);
     }
 
-    public JComponent getComponent() {
+    public JLabel getComponent() {
         if(component != null) return component;
         component = new JLabel(name);
         component.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));

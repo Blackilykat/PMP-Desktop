@@ -87,6 +87,7 @@ public class DataHeaderListMessage extends Message {
                     oldHeader.metadataKey = header.b;
                     oldHeader.name = header.c;
                     oldHeader.clazz = TrackDataEntry.getEntryType(header.b, Library.INSTANCE);
+                    oldHeader.getComponent().setText(oldHeader.name);
                     continue newHeaderLoop;
                 }
             }
