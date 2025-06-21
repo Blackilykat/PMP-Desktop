@@ -72,7 +72,8 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if(e.getButton() == MouseEvent.BUTTON1) {
+        // Using getButton() always returns 0 because during a drag none of the mouse buttons change state.
+        if((e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) {
             if(songListWidget.draggedHeader == null) return;
 
             int actualX = e.getX() - songListWidget.draggedHeader.containedComponent.getX();
