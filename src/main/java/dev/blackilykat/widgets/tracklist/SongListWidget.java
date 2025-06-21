@@ -25,6 +25,7 @@ import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.DataHeaderListMessage;
+import dev.blackilykat.messages.LatestHeaderIdMessage;
 import dev.blackilykat.util.Pair;
 import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.ScrollablePanel;
@@ -77,16 +78,16 @@ public class SongListWidget extends Widget {
         super();
         this.audio = audio;
 
-        List<Triple<String, String, Integer>> storedHeaders = Storage.getTrackHeaders();
+        List<Storage.StoredHeader> storedHeaders = Storage.getTrackHeaders();
         if(storedHeaders != null) {
-            for(Triple<String, String, Integer> header : storedHeaders) {
-                dataHeaders.add(new TrackDataHeader(header.a, header.b, TrackDataEntry.getEntryType(header.b, Library.INSTANCE), header.c, this));
+            for(Storage.StoredHeader header : storedHeaders) {
+                dataHeaders.add(new TrackDataHeader(header.id, header.label, header.metadataKey, TrackDataEntry.getEntryType(header.metadataKey, Library.INSTANCE), header.width, this));
             }
         } else {
-            dataHeaders.add(new TrackDataHeader("N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
-            dataHeaders.add(new TrackDataHeader("Title", "title", StringTrackDataEntry.class, 500, this));
-            dataHeaders.add(new TrackDataHeader("Artist", "artist", StringTrackDataEntry.class, 300, this));
-            dataHeaders.add(new TrackDataHeader("Length", "duration", TimeTrackDataEntry.class, 100, this));
+            dataHeaders.add(new TrackDataHeader(1, "N°", "tracknumber", IntegerTrackDataEntry.class, 50, this));
+            dataHeaders.add(new TrackDataHeader(2, "Title", "title", StringTrackDataEntry.class, 500, this));
+            dataHeaders.add(new TrackDataHeader(3, "Artist", "artist", StringTrackDataEntry.class, 300, this));
+            dataHeaders.add(new TrackDataHeader(4, "Length", "duration", TimeTrackDataEntry.class, 100, this));
         }
 
         this.add(headerPanel);
@@ -274,9 +275,10 @@ public class SongListWidget extends Widget {
                     if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
                         DataHeaderListMessage msg = new DataHeaderListMessage();
                         for(TrackDataHeader header : SongListWidget.this.dataHeaders) {
-                            msg.headers.add(new Pair<>(header.metadataKey, header.name));
+                            msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
                         }
                         ServerConnection.INSTANCE.send(msg);
+                        ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
                     }
                 } catch(Throwable e) {
                     e.printStackTrace();

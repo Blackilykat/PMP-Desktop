@@ -35,10 +35,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class TrackDataHeader {
-    public final String metadataKey;
-    public final Class<? extends TrackDataEntry<?>> clazz;
+    public static int latestId = -1;
+    public String metadataKey;
+    public Class<? extends TrackDataEntry<?>> clazz;
     public String name;
     public int width;
+    public final int id;
     public JPanel containedComponent = null;
     private JLabel component = null;
     public SongListWidget songListWidget;
@@ -47,6 +49,11 @@ public class TrackDataHeader {
     private boolean wasPressing = false;
 
     public TrackDataHeader(String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width, SongListWidget songListWidget) {
+        this(latestId++, name, metadataKey, clazz, width, songListWidget);
+    }
+
+    public TrackDataHeader(int id, String name, String metadataKey, Class<? extends TrackDataEntry<?>> clazz, int width, SongListWidget songListWidget) {
+        this.id = id;
         this.name = name;
         this.metadataKey = metadataKey;
         this.clazz = clazz;

@@ -52,6 +52,7 @@ public record IntegerTrackDataEntry(Integer data) implements TrackDataEntry<Inte
     }
 
     public static IntegerTrackDataEntry create(Track track, TrackDataHeader header) {
+        System.out.println("Track: " + track.title + ", label: " + header.name + ", key: " + header.metadataKey);
         for(Pair<String, String> metadatum : track.metadata) {
             if(metadatum.key.equalsIgnoreCase(header.metadataKey)) {
                 return new IntegerTrackDataEntry(Integer.valueOf(metadatum.value));

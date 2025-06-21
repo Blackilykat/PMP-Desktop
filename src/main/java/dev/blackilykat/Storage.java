@@ -17,14 +17,13 @@
 
 package dev.blackilykat;
 
-import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
-import dev.blackilykat.widgets.tracklist.Order;
 import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.io.Serializable;
 import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,13 +56,15 @@ public class Storage {
                 Storage.setFilters(filters);
             }
 
-            List<Triple<String, String, Integer>> headers = new ArrayList<>();
+            List<StoredHeader> headers = new ArrayList<>();
             for(TrackDataHeader header : Main.songListWidget.dataHeaders) {
-                headers.add(new Triple<>(header.name, header.metadataKey, header.width));
+                headers.add(new StoredHeader(header.id, header.name, header.metadataKey, header.width));
             }
             Storage.setTrackHeaders(headers);
 
             general.put("pendingLibraryActions", pendingLibraryActions);
+
+            Storage.setLatestHeaderId(TrackDataHeader.latestId);
 
             mvStore.close();
         }));
@@ -71,6 +72,8 @@ public class Storage {
         if(!LIBRARY.exists()) {
             LIBRARY.mkdir();
         }
+
+        TrackDataHeader.latestId = Storage.getLatestHeaderId();
     }
 
     public static int getCurrentActionID() {
@@ -96,11 +99,11 @@ public class Storage {
     /**
      * @return a list of all the track headers. The values in each triple are label, key, width.
      */
-    public static List<Triple<String, String, Integer>> getTrackHeaders() {
-        return (List<Triple<String, String, Integer>>) general.getOrDefault("trackHeaders", null);
+    public static List<StoredHeader> getTrackHeaders() {
+        return (List<StoredHeader>) general.getOrDefault("trackHeaders", null);
     }
 
-    public static void setTrackHeaders(List<Triple<String, String, Integer>> trackHeaders) {
+    public static void setTrackHeaders(List<StoredHeader> trackHeaders) {
         if(trackHeaders == null) {
             general.remove("trackHeaders");
             return;
@@ -160,5 +163,31 @@ public class Storage {
 
     public static LibraryAction popPendingLibraryAction() {
         return pendingLibraryActions.poll();
+    }
+
+    public static int getLatestHeaderId() {
+        return (int) general.getOrDefault("latestHeaderId", 1);
+    }
+
+    public static void setLatestHeaderId(int id) {
+        if(id < 1) {
+            general.remove("latestHeaderId");
+            return;
+        }
+        general.put("latestHeaderId", id);
+    }
+
+    public static class StoredHeader implements Serializable {
+        public int id;
+        public String label;
+        public String metadataKey;
+        public int width;
+
+        public StoredHeader(int id, String label, String metadataKey, int width) {
+            this.id = id;
+            this.label = label;
+            this.metadataKey = metadataKey;
+            this.width = width;
+        }
     }
 }
