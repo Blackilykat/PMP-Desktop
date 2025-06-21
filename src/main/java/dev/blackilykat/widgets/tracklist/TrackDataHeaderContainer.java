@@ -50,50 +50,56 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if(songListWidget.draggedHeader == null) return;
-        songListWidget.draggedHeader.width = Math.max(e.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
+        if(e.getButton() == MouseEvent.BUTTON1) {
+            if(songListWidget.draggedHeader == null) return;
+            songListWidget.draggedHeader.width = Math.max(e.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
 
-        songListWidget.draggedHeader = null;
-        songListWidget.dragResizeLine = -1;
-        songListWidget.repaint();
-        songListWidget.refreshHeaders();
-        songListWidget.revalidate();
-        songListWidget.scrollPaneContents.revalidate();
-        for(Component child : songListWidget.scrollPaneContents.getComponents()) {
-            if(!(child instanceof TrackPanel trackPanel)) continue;
-            for(Component grandchild : trackPanel.getComponents()) {
-                if(!(grandchild instanceof TrackDataEntryWidget widget)) continue;
-                grandchild.revalidate();
+            songListWidget.draggedHeader = null;
+            songListWidget.dragResizeLine = -1;
+            songListWidget.repaint();
+            songListWidget.refreshHeaders();
+            songListWidget.revalidate();
+            songListWidget.scrollPaneContents.revalidate();
+            for(Component child : songListWidget.scrollPaneContents.getComponents()) {
+                if(!(child instanceof TrackPanel trackPanel)) continue;
+                for(Component grandchild : trackPanel.getComponents()) {
+                    if(!(grandchild instanceof TrackDataEntryWidget widget)) continue;
+                    grandchild.revalidate();
+                }
             }
         }
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if(songListWidget.draggedHeader == null) return;
+        if(e.getButton() == MouseEvent.BUTTON1) {
+            if(songListWidget.draggedHeader == null) return;
 
-        int actualX = e.getX() - songListWidget.draggedHeader.containedComponent.getX();
-        int oldPos = songListWidget.dragResizeLine;
-        if(actualX < 20) {
-            // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
-            songListWidget.dragResizeLine = songListWidget.draggedHeader.containedComponent.getX() + 20;
-        } else {
-            songListWidget.dragResizeLine = e.getX();
+            int actualX = e.getX() - songListWidget.draggedHeader.containedComponent.getX();
+            int oldPos = songListWidget.dragResizeLine;
+            if(actualX < 20) {
+                // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
+                songListWidget.dragResizeLine = songListWidget.draggedHeader.containedComponent.getX() + 20;
+            } else {
+                songListWidget.dragResizeLine = e.getX();
+            }
+            // repainting everything uses an unreasonable amount of gpu
+            songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
+            songListWidget.repaint(songListWidget.dragResizeLine, 0, 1, songListWidget.getHeight());
         }
-        // repainting everything uses an unreasonable amount of gpu
-        songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
-        songListWidget.repaint(songListWidget.dragResizeLine, 0, 1, songListWidget.getHeight());
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
-        int totalWidth = 0;
-        for(TrackDataHeader dataHeader : songListWidget.dataHeaders) {
-            totalWidth += dataHeader.width;
-        }
+        if(e.getButton() == MouseEvent.BUTTON1) {
+            int totalWidth = 0;
+            for(TrackDataHeader dataHeader : songListWidget.dataHeaders) {
+                totalWidth += dataHeader.width;
+            }
 
-        if(e.getX() < totalWidth + 20) {
-            songListWidget.draggedHeader = songListWidget.dataHeaders.getLast();
+            if(e.getX() < totalWidth + 20) {
+                songListWidget.draggedHeader = songListWidget.dataHeaders.getLast();
+            }
         }
     }
 
