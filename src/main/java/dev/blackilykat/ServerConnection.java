@@ -349,6 +349,7 @@ public class ServerConnection {
                                 case PlaybackSessionListMessage.MESSAGE_TYPE -> PlaybackSessionListMessage.fromJson(json);
                                 case DataHeaderListMessage.MESSAGE_TYPE -> DataHeaderListMessage.fromJson(json);
                                 case LoginMessage.MESSAGE_TYPE -> LoginMessage.fromJson(json);
+                                case LatestHeaderIdMessage.MESSAGE_TYPE -> LatestHeaderIdMessage.fromJson(json);
                                 default -> {
                                     throw new MessageInvalidContentsException("Unknown message_type '"+messageType+"'");
                                 }
