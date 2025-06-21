@@ -185,7 +185,7 @@ public class PlaybackSession {
     public void setSortingHeader(TrackDataHeader sortingHeader) {
         this.sortingHeader = sortingHeader;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, Main.songListWidget.dataHeaders.indexOf(sortingHeader), null);
+            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, sortingHeader.id, null);
         }
     }
 

@@ -31,6 +31,7 @@ import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.tracklist.Order;
+import dev.blackilykat.widgets.tracklist.TrackDataHeader;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -138,7 +139,7 @@ public class PlaybackSessionListMessage extends Message {
                     session.getPosition(),
                     PlaybackSessionUpdateMessage.getFiltersFromSession(session),
                     ServerConnection.INSTANCE.clientId,
-                    Main.songListWidget.dataHeaders.indexOf(session.getSortingHeader()),
+                    session.getSortingHeader().id,
                     session.getSortingOrder());
         } else {
             Track track = null;
@@ -163,7 +164,7 @@ public class PlaybackSessionListMessage extends Message {
             session.recalculatePosition(Instant.now());
             session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
             if(!Main.songListWidget.dataHeaders.isEmpty()) {
-                session.setSortingHeader(Main.songListWidget.dataHeaders.get(element.sortingHeader));
+                session.setSortingHeader(TrackDataHeader.getById(element.sortingHeader));
             }
             session.setSortingOrder(element.sortingOrder);
             PlaybackSessionUpdateMessage.messageBuffer = null;

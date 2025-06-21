@@ -210,7 +210,7 @@ public class PlaybackSessionUpdateMessage extends Message {
             shouldReloadSorting = true;
         }
         if(sortingHeader != null) try {
-            session.setSortingHeader(Main.songListWidget.dataHeaders.get(sortingHeader));
+            session.setSortingHeader(TrackDataHeader.getById(sortingHeader));
             shouldReloadSorting = true;
         } catch(IndexOutOfBoundsException ignored) {
         }
