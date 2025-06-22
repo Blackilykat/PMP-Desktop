@@ -177,6 +177,30 @@ public class Storage {
         general.put("latestHeaderId", id);
     }
 
+    public static String getToken() {
+        return (String) general.getOrDefault("token", null);
+    }
+
+    public static void setToken(String token) {
+        if(token == null) {
+            general.remove("token");
+            return;
+        }
+        general.put("token", token);
+    }
+
+    public static int getDeviceId() {
+        return (int) general.getOrDefault("deviceId", -1);
+    }
+
+    public static void setDeviceId(int id) {
+        if(id < 1) {
+            general.remove("deviceId");
+            return;
+        }
+        general.put("deviceId", id);
+    }
+
     public static class StoredHeader implements Serializable {
         public int id;
         public String label;

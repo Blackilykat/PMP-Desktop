@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
+import dev.blackilykat.messages.exceptions.MessageMissingContentsException;
 
 /**
  * The first message the server sends when a client successfully connects (would be after authentication when that gets
@@ -46,16 +47,26 @@ public class WelcomeMessage extends Message {
      * The latest library action id so the client can catch up if needed before checking checksums
      */
     public int latestActionId;
+    public String token;
+    public int deviceId;
 
-    public WelcomeMessage(int clientId, int latestActionId) {
+    public WelcomeMessage(int clientId, int latestActionId, String token, int deviceId) {
         if(clientId < 0) {
             throw new IllegalArgumentException("Client ID must be greater or equal than 0");
         }
         if(latestActionId < 0) {
-            throw new IllegalArgumentException("Latest action ID must be greater or equal than 0");
+            throw new IllegalArgumentException("latest action ID must be greater or equal than 0");
+        }
+        if(token == null) {
+            throw new IllegalArgumentException("Token cannot be null");
+        }
+        if(deviceId <= 0) {
+            throw new IllegalArgumentException("device ID must be greater than 0");
         }
         this.clientId = clientId;
         this.latestActionId = latestActionId;
+        this.token = token;
+        this.deviceId = deviceId;
     }
 
     @Override
@@ -67,12 +78,19 @@ public class WelcomeMessage extends Message {
     public void fillContents(JsonObject object) {
         object.addProperty("client_id", clientId);
         object.addProperty("latest_action_id", latestActionId);
+        object.addProperty("token", token);
+        object.addProperty("device_id", deviceId);
     }
 
     @Override
     public void handle(ServerConnection connection) {
         connection.connected = true;
         connection.clientId = clientId;
+        connection.deviceId = deviceId;
+
+        Storage.setDeviceId(deviceId);
+        Storage.setToken(token);
+
         int currentActionId = Storage.getCurrentActionID();
         if(currentActionId != -1 && currentActionId < latestActionId) {
             waitingForMissedActions = latestActionId - 1;
@@ -81,12 +99,29 @@ public class WelcomeMessage extends Message {
         } else if(currentActionId == -1 || currentActionId > latestActionId) {
             Storage.setCurrentActionID(latestActionId);
         }
-        System.out.println("Successfully connected to server with client ID " + clientId);
+        System.out.println("Successfully connected to server with client ID " + clientId + " and device ID " + deviceId);
         ServerConnection.callConnectListeners(connection);
     }
 
     //@Override
     public static Message fromJson(JsonObject json) throws MessageException {
-        return new WelcomeMessage(json.get("client_id").getAsInt(), json.get("latest_action_id").getAsInt());
+        if(!json.has("client_id")) {
+            throw new MessageMissingContentsException("Missing client id");
+        }
+        if(!json.has("latest_action_id")) {
+            throw new MessageMissingContentsException("Missing latest action id");
+        }
+        if(!json.has("token")) {
+            throw new MessageMissingContentsException("Missing token");
+        }
+        if(!json.has("device_id")) {
+            throw new MessageMissingContentsException("Missing device id");
+        }
+        return new WelcomeMessage(
+                json.get("client_id").getAsInt(),
+                json.get("latest_action_id").getAsInt(),
+                json.get("token").getAsString(),
+                json.get("device_id").getAsInt()
+        );
     }
 }

@@ -79,6 +79,7 @@ public class ServerConnection {
     private int messageIdCounter = 0;
     public BlockingQueue<Message> messageQueue = new LinkedBlockingQueue<>();
     public int clientId = -1;
+    public int deviceId = -1;
     public boolean connected = false;
     public MessageSendingThread messageSendingThread = new MessageSendingThread();
     public InputReadingThread inputReadingThread = new InputReadingThread();
@@ -139,7 +140,9 @@ public class ServerConnection {
         startSending();
         startReading();
 
-        {
+        int deviceId = Storage.getDeviceId();
+        String token = Storage.getToken();
+        if(deviceId < 1 || token == null) {
             JPasswordField passwordField = new JPasswordField(16);
             JPanel panel = new JPanel();
             panel.add(new JLabel("Enter the password: "));
@@ -150,12 +153,17 @@ public class ServerConnection {
                 return;
             }
 
+            // if this fails see https://stackoverflow.com/a/7800008
+            // Since this is a desktop application designed to be connected to a network the edge cases are unlikely
+            String hostname = InetAddress.getLocalHost().getHostName();
+
             {
                 char[] password = passwordField.getPassword();
-                this.send(new LoginMessage(new String(password)));
+                this.send(new LoginMessage(new String(password), hostname));
                 Arrays.fill(password, (char) 0);
             }
-
+        } else {
+            this.send(new LoginMessage(token, deviceId));
         }
 
     }
@@ -326,9 +334,11 @@ public class ServerConnection {
                         inputBuffer.append((char) read);
                     } else if(!inputBuffer.isEmpty()) {
                         String message = inputBuffer.toString();
-                        System.out.println("Reveiving message: " + message);
                         try {
                             JsonObject json = Json.fromJsonObject(message);
+                            JsonObject printedJson = json.deepCopy();
+                            if(printedJson.has("token")) printedJson.addProperty("token", "REDACTED");
+                            System.out.println("Received message: " + printedJson);
                             String messageType;
                             if(json.has("message_type")) {
                                 messageType = json.get("message_type").getAsString();
@@ -362,6 +372,7 @@ public class ServerConnection {
                         } catch (JsonSyntaxException | UnsupportedOperationException e) {
                             increaseMessageIdCounter();
                             System.err.printf("Invalid message format on message %d: %s", getMessageIdCounter()-1, e.getMessage());
+                            System.err.println("Incorrect message: " + inputBuffer.toString());
                         } catch (MessageInvalidContentsException e) {
                             increaseMessageIdCounter();
                             System.err.printf("Invalid message contents on message %d: %s", getMessageIdCounter()-1, e.getMessage());

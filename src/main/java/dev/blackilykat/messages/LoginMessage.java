@@ -25,10 +25,21 @@ import dev.blackilykat.messages.exceptions.MessageMissingContentsException;
 public class LoginMessage extends Message {
     public static final String MESSAGE_TYPE = "LOGIN";
 
-    public String password;
+    // This message either contains
+    public String password = null;
+    public String hostname = null;
+    // or
+    public String token = null;
+    public int deviceId = -1;
 
-    public LoginMessage(String password) {
+    public LoginMessage(String password, String hostname) {
         this.password = password;
+        this.hostname = hostname;
+    }
+
+    public LoginMessage(String token, int deviceId) {
+        this.token = token;
+        this.deviceId = deviceId;
     }
 
     @Override
@@ -38,7 +49,13 @@ public class LoginMessage extends Message {
 
     @Override
     public void fillContents(JsonObject object) {
-        object.addProperty("password", password);
+        if(password != null) {
+            object.addProperty("password", password);
+            object.addProperty("hostname", hostname);
+        } else {
+            object.addProperty("token", token);
+            object.addProperty("deviceId", deviceId);
+        }
     }
 
     @Override
@@ -47,9 +64,24 @@ public class LoginMessage extends Message {
 
     //@Override
     public static Message fromJson(JsonObject json) throws MessageException {
-        if(!json.has("password")) {
-            throw new MessageMissingContentsException("Missing password");
+        if(json.has("password")) {
+            return fromJsonWithPassword(json);
+        } else if(json.has("token")) {
+            return fromJsonWithToken(json);
         }
-        return new LoginMessage(json.get("password").getAsString());
+        throw new MessageMissingContentsException("Missing both password and token");
     };
+
+    private static LoginMessage fromJsonWithPassword(JsonObject json) throws MessageException {
+        if(!json.has("password") || !json.has("hostname")) {
+            throw new MessageMissingContentsException("Missing password or hostname");
+        }
+        return new LoginMessage(json.get("password").getAsString(), json.get("hostname").getAsString());
+    }
+    private static LoginMessage fromJsonWithToken(JsonObject json) throws MessageException {
+        if(!json.has("token") || !json.has("deviceId")) {
+            throw new MessageMissingContentsException("Missing token or id");
+        }
+        return new LoginMessage(json.get("token").getAsString(), json.get("deviceId").getAsInt());
+    }
 }
