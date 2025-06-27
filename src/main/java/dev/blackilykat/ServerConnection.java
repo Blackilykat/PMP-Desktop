@@ -39,7 +39,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -52,9 +51,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -75,7 +76,6 @@ public class ServerConnection {
     public SSLSocket socket;
     public InputStream inputStream;
     public OutputStream outputStream;
-    public StringBuffer inputBuffer = new StringBuffer();
     private int messageIdCounter = 0;
     public BlockingQueue<Message> messageQueue = new LinkedBlockingQueue<>();
     public int clientId = -1;
@@ -325,15 +325,20 @@ public class ServerConnection {
     private class InputReadingThread extends Thread {
         @Override
         public void run() {
+            Queue<Byte> inputBuffer = new ArrayDeque<>();
             try {
                 int read;
                 while(!Thread.interrupted()) {
                     read = inputStream.read();
                     if(read == -1) break;
                     if(read != ((int) '\n')) {
-                        inputBuffer.append((char) read);
+                        inputBuffer.add((byte) read);
                     } else if(!inputBuffer.isEmpty()) {
-                        String message = inputBuffer.toString();
+                        byte[] msg = new byte[inputBuffer.size()];
+                        for(int i = 0; i < msg.length; i++) {
+                            msg[i] = inputBuffer.poll();
+                        }
+                        String message = new String(msg, StandardCharsets.UTF_8);
                         try {
                             JsonObject json = Json.fromJsonObject(message);
                             JsonObject printedJson = json.deepCopy();
@@ -382,9 +387,6 @@ public class ServerConnection {
                         } catch (MessageException ignored) {
                             //unreachable
                         }
-
-
-                        inputBuffer.setLength(0);
                     }
                 }
             } catch (IOException e) {
