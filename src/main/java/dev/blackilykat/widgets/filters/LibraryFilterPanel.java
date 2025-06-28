@@ -222,6 +222,8 @@ public class LibraryFilterPanel extends JPanel {
                     option.filter.session.sendFilterUpdate();
                     Main.songListWidget.refreshTracks();
                     option.filter.library.reloadFilters();
+                    Main.libraryFiltersWidget.reloadPanels();
+                    Main.libraryFiltersWidget.reloadElements();
                     option.filter.library.reloadSorting();
                     Main.songListWidget.refreshTracks();
                 }

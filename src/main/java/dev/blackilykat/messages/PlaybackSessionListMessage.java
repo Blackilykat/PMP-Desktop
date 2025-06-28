@@ -111,7 +111,6 @@ public class PlaybackSessionListMessage extends Message {
                 }
                 assert toSelect != null;
                 Audio.INSTANCE.setCurrentSession(toSelect);
-                Library.INSTANCE.reloadOptions();
                 Library.INSTANCE.reloadFilters();
                 Library.INSTANCE.reloadSorting();
             }

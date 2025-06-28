@@ -83,7 +83,6 @@ public class Library {
 
     public synchronized void reloadAll() {
         reloadTracks();
-        reloadOptions();
         reloadFilters();
         reloadSorting();
         if(Main.songListWidget != null) {
@@ -91,28 +90,21 @@ public class Library {
         }
     }
 
-    public void reloadOptions() {
-        if(Main.libraryFiltersWidget != null) {
-            for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
-                LibraryFilterOption[] oldOptions = filter.getOptions();
-                filter.reloadOptions();
-                for(LibraryFilterOption oldOption : oldOptions) {
-                    LibraryFilterOption newOption = filter.getOption(oldOption.value);
-                    if(newOption == null) continue;
-                    newOption.setState(oldOption.getState(), false);
-                }
-                filter.session.sendFilterUpdate();
-            }
-        }
-    }
-
     public void reloadFilters() {
         filteredTracks.clear();
         filteredTracks.addAll(tracks);
-        if(audio == null) return;
-        System.out.println("RELOADING FILTERS");
+        if(audio == null || Main.libraryFiltersWidget == null) return;
+
         for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
-            System.out.println("FILTER " + filter.key);
+            LibraryFilterOption[] oldOptions = filter.getOptions();
+            filter.reloadOptions();
+            for(LibraryFilterOption oldOption : oldOptions) {
+                LibraryFilterOption newOption = filter.getOption(oldOption.value);
+                if(newOption == null) continue;
+                newOption.setState(oldOption.getState(), false);
+            }
+            filter.session.sendFilterUpdate();
+
             filter.reloadMatching();
             filteredTracks.clear();
             filteredTracks.addAll(filter.matchingTracks);

@@ -125,9 +125,9 @@ public class LibraryFiltersWidget extends Widget {
                     Audio.INSTANCE.currentSession.addLibraryFilter(filter);
                 }
                 LibraryFilterPanel panel = new LibraryFilterPanel(filter, LibraryFiltersWidget.this);
+                panel.filter.library.reloadFilters();
                 reloadPanels();
                 reloadElements();
-                panel.filter.library.reloadFilters();
             }
         });
         return item;

@@ -152,7 +152,7 @@ public class LibraryFilter {
         boolean shouldAddUnknown = false;
 
         List<LibraryFilterOption> sortedOptions = new ArrayList<>();
-        for(Track track : library.tracks) {
+        for(Track track : library.filteredTracks) {
             boolean hasKey = false;
 
             for(Pair<String, String> pair : track.metadata) {
