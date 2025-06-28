@@ -222,6 +222,7 @@ public class ServerConnection {
             connection.setHostnameVerifier((hostname, session) -> true);
             connection.setRequestMethod("GET");
             connection.setDoInput(true);
+            connection.setRequestProperty("Authorization", Storage.getToken());
             InputStream connectionInputStream = connection.getInputStream();
             Files.copy(connectionInputStream, destination.toPath());
             if(connection.getResponseCode() == 200) {
@@ -254,6 +255,7 @@ public class ServerConnection {
             connection.setHostnameVerifier((hostname, session) -> true);
             connection.setDoOutput(true);
             connection.setRequestMethod(replace ? "PUT" : "POST");
+            connection.setRequestProperty("Authorization", Storage.getToken());
             OutputStream connectionOutputStream = connection.getOutputStream();
             Files.copy(source.toPath(), connectionOutputStream);
             connectionOutputStream.close();
