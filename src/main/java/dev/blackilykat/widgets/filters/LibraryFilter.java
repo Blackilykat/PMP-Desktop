@@ -110,11 +110,11 @@ public class LibraryFilter {
                         }
                     }
 
-                    LibraryFilterOption unknown = this.getOption(OPTION_UNKNOWN);
-                    // reloadOptions() would've added unknown to the options list due to this not having the key
-                    assert unknown != null;
-                    if(!hasKey && unknown.getState() == LibraryFilterOption.State.POSITIVE) {
-                        matchingTracks.add(track);
+                    if(!hasKey) {
+                        LibraryFilterOption unknown = this.getOption(OPTION_UNKNOWN);
+                        if(unknown != null && unknown.getState() == LibraryFilterOption.State.POSITIVE) {
+                            matchingTracks.add(track);
+                        }
                     }
                 }
             }
