@@ -43,6 +43,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.Key;
@@ -85,6 +86,7 @@ public class ServerConnection {
     public InputReadingThread inputReadingThread = new InputReadingThread();
     public Key serverPublicKey = null;
     public SSLContext sslContext = null;
+    public int loginMessageId = -1;
 
     public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
         System.out.printf("Connecting to server on %s:%d and %s:%d...\n", ip, mainPort, ip, filePort);
@@ -143,27 +145,16 @@ public class ServerConnection {
         int deviceId = Storage.getDeviceId();
         String token = Storage.getToken();
         if(deviceId < 1 || token == null) {
-            JPasswordField passwordField = new JPasswordField(16);
-            JPanel panel = new JPanel();
-            panel.add(new JLabel("Enter the password: "));
-            panel.add(passwordField);
-            int response = JOptionPane.showOptionDialog(null, panel, "Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, 0);
-            if(response != 0) {
-                this.disconnect(-1);
-                return;
-            }
+            String password = askForPassword();
+            String hostname = getHostname();
 
-            // if this fails see https://stackoverflow.com/a/7800008
-            // Since this is a desktop application designed to be connected to a network the edge cases are unlikely
-            String hostname = InetAddress.getLocalHost().getHostName();
-
-            {
-                char[] password = passwordField.getPassword();
+            if(deviceId < 1) {
                 this.send(new LoginMessage(new String(password), hostname));
-                Arrays.fill(password, (char) 0);
+            } else {
+                this.send(new LoginMessage(new String(password), deviceId, false));
             }
         } else {
-            this.send(new LoginMessage(token, deviceId));
+            this.send(new LoginMessage(token, deviceId, true));
         }
 
     }
@@ -304,6 +295,9 @@ public class ServerConnection {
             try {
                 while (true) {
                     Message message = messageQueue.take();
+                    if(message instanceof LoginMessage) {
+                        ServerConnection.this.loginMessageId = getMessageIdCounter();
+                    }
                     String messageStr = (message.withMessageId(getMessageIdCounter()).toJson() + "\n");
                     if(!message.getMessageType().equals(LoginMessage.MESSAGE_TYPE)) {
                         System.out.println("Sending message: " + messageStr);
@@ -353,6 +347,11 @@ public class ServerConnection {
                                 throw new MessageMissingContentsException("Missing message_type field!");
                             }
 
+                            if(!json.has("message_id")) {
+                                throw new MessageMissingContentsException("Missing message_id field!");
+                            }
+                            int messageId = json.get("message_id").getAsInt();
+
                             Message parsedMessage = switch(messageType.toUpperCase()) {
                                 case WelcomeMessage.MESSAGE_TYPE -> WelcomeMessage.fromJson(json);
                                 case DisconnectMessage.MESSAGE_TYPE -> DisconnectMessage.fromJson(json);
@@ -371,6 +370,7 @@ public class ServerConnection {
                                     throw new MessageInvalidContentsException("Unknown message_type '"+messageType+"'");
                                 }
                             };
+                            parsedMessage.messageId = messageId;
                             parsedMessage.handle(ServerConnection.this);
 
                             System.out.println("Received message w/ type " + parsedMessage.getMessageType());
@@ -431,6 +431,35 @@ public class ServerConnection {
 
     public static void callDisconnectListeners(ServerConnection connection) {
         onDisconnectListeners.forEach(l -> l.run(connection));
+    }
+
+    public static String askForPassword() {
+        JPasswordField passwordField = new JPasswordField(16);
+        JPanel panel = new JPanel();
+        panel.add(new JLabel("Enter the password: "));
+        panel.add(passwordField);
+        int response = JOptionPane.showOptionDialog(null, panel, "Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, 0);
+        if(response != 0) {
+            return null;
+        }
+        // While it would be best to set the char array to zeroes after usage, the way messages are handled requires it
+        // to be turned into a String at some point. Once you have a String you can't forcefully remove it from memory
+        // after usage so all the benefits of doing it that way would be gone.
+        // Just keeping a string is better for code organisation in this case. I might eventually worry about this more
+        // but it's only a problem in core dumps or if someone has root access (in which case you're cooked anyway)
+        return new String(passwordField.getPassword());
+    }
+
+    public static String getHostname() {
+        try {
+            // if this fails see https://stackoverflow.com/a/7800008
+            // Since this is a desktop application designed to be connected to a network the edge cases are unlikely
+            return InetAddress.getLocalHost().getHostName();
+        } catch(UnknownHostException e) {
+            System.err.println("Cannot obtain hostname");
+            e.printStackTrace();
+            return "Unknown";
+        }
     }
 
     public interface ConnectionListener {

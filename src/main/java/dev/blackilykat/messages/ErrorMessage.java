@@ -19,6 +19,7 @@ package dev.blackilykat.messages;
 
 import com.google.gson.JsonObject;
 import dev.blackilykat.ServerConnection;
+import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.messages.exceptions.MessageInvalidContentsException;
 
@@ -75,6 +76,20 @@ public class ErrorMessage extends Message {
 
     @Override
     public void handle(ServerConnection connection) {
+        if(relativeToMessage >= 0 && relativeToMessage == connection.loginMessageId) {
+            System.out.println("Incorrect login!");
+            Storage.setToken(null);
+            String password = ServerConnection.askForPassword();
+            if(password != null) {
+                int deviceId = Storage.getDeviceId();
+                if(deviceId >= 0) {
+                    connection.send(new LoginMessage(password, deviceId, false));
+                } else {
+                    connection.send(new LoginMessage(password, ServerConnection.getHostname()));
+                }
+            }
+
+        }
     }
 
     //@Override
