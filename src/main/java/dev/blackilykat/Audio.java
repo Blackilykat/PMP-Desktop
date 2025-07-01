@@ -189,12 +189,14 @@ public class Audio {
 
     public void nextTrack() {
         if(currentSession == null) return;
+        currentSession.setPlaying(false);
         Track next = currentSession.nextTrack();
         if(next != null) startPlaying(next, true);
     }
 
     public void previousTrack() {
         if(currentSession == null) return;
+        currentSession.setPlaying(false);
         Track previous = currentSession.previousTrack();
         if(previous != null) startPlaying(previous, true);
     }
