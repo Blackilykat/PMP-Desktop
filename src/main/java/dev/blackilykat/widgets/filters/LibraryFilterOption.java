@@ -24,7 +24,6 @@ public class LibraryFilterOption implements Comparable<LibraryFilterOption> {
     private State state = State.NONE;
 
     public LibraryFilterOption(LibraryFilter filter, String value) {
-        System.out.println("adding option with value " + value + " to filter " + filter.key);
         this.filter = filter;
         this.value = value;
     }

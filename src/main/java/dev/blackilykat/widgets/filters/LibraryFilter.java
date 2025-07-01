@@ -99,10 +99,8 @@ public class LibraryFilter {
 
                 for(Track track : library.filteredTracks) {
                     boolean hasKey = false;
-                    System.out.println("Filtering for track " + track.title);
                     for(Pair<String, String> pair : track.metadata) {
                         if(!key.equalsIgnoreCase(pair.key)) continue;
-                        System.out.println("key " + key + " value " + pair.value);
 
                         hasKey = true;
                         if(option.value.equals(pair.value)) {

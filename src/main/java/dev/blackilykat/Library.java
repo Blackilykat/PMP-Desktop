@@ -63,15 +63,16 @@ public class Library {
     public synchronized void reloadTracks() {
         loaded = false;
         tracks = new ArrayList<>();
+        int cachedTracks = 0;
         for(File result : search(Storage.LIBRARY)) {
             if(Audio.isSupported(result)) {
                 Track track;
                 String filename = result.getName();
                 if(Storage.trackCache.containsKey(filename) && Storage.trackCache.get(filename).lastModified == result.lastModified()) {
-                    System.out.println(filename + " cached");
                     track = Storage.trackCache.get(filename);
+                    cachedTracks++;
                 } else {
-                    System.out.println(filename + " NOT CACHED");
+                    System.out.println(filename + " not cached!");
                     track = new Track(result);
                     try {
                         CheckedInputStream inputStream = new CheckedInputStream(new FileInputStream(track.getFile()), new CRC32());
@@ -85,6 +86,7 @@ public class Library {
                 tracks.add(track);
             }
         }
+        System.out.println(cachedTracks + " tracks cached");
         Storage.trackCache.clear();
         for(Track track : tracks) {
             Storage.trackCache.put(track.getFile().getName(), track);
@@ -143,7 +145,6 @@ public class Library {
             return e1.compare(e2) * multiplier;
         }).toList()) {
             // i need it as an arraylist so i just copy over the results
-            System.out.println("Ordering " + track.title);
             filteredTracks.set(i++, track);
         }
 
