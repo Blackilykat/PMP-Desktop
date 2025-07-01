@@ -28,15 +28,16 @@ import org.kc7bfi.jflac.metadata.VorbisString;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Track {
+public class Track implements Serializable {
     public String title;
     private File file;
-    public TrackPanel panel = null;
+    public transient TrackPanel panel = null;
     public List<Pair<String, String>> metadata = new ArrayList<>();
     /**
      * CRC32 checksum of the track
@@ -46,15 +47,18 @@ public class Track {
      * The pcm audio data for this track. Should only be anything other than null when it's either being played or
      * about to.
      */
-    public byte[] pcmData = null;
+    public transient byte[] pcmData = null;
     /**
      * How many bytes of {@link #pcmData} are loaded.
      */
-    public int loaded = 0;
+    public transient int loaded = 0;
     public int durationSeconds = 0;
+
+    public long lastModified = 0;
 
     public Track(File path) {
         this.file = path;
+        this.lastModified = file.lastModified();
         if(path.getName().endsWith(".flac")) {
             try {
                 FLACDecoder decoder = new FLACDecoder(new FileInputStream(file));

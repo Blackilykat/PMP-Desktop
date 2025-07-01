@@ -65,18 +65,29 @@ public class Library {
         tracks = new ArrayList<>();
         for(File result : search(Storage.LIBRARY)) {
             if(Audio.isSupported(result)) {
-                Track track = new Track(result);
-                tracks.add(track);
-
-                try {
-                    CheckedInputStream inputStream = new CheckedInputStream(new FileInputStream(track.getFile()), new CRC32());
-                    // 1MB
-                    byte[] buffer = new byte[1048576];
-                    while(inputStream.read(buffer, 0, buffer.length) >= 0) {}
-                    track.checksum = inputStream.getChecksum().getValue();
-                } catch(IOException ignored) {
+                Track track;
+                String filename = result.getName();
+                if(Storage.trackCache.containsKey(filename) && Storage.trackCache.get(filename).lastModified == result.lastModified()) {
+                    System.out.println(filename + " cached");
+                    track = Storage.trackCache.get(filename);
+                } else {
+                    System.out.println(filename + " NOT CACHED");
+                    track = new Track(result);
+                    try {
+                        CheckedInputStream inputStream = new CheckedInputStream(new FileInputStream(track.getFile()), new CRC32());
+                        // 1MB
+                        byte[] buffer = new byte[1048576];
+                        while(inputStream.read(buffer, 0, buffer.length) >= 0) {}
+                        track.checksum = inputStream.getChecksum().getValue();
+                    } catch(IOException ignored) {
+                    }
                 }
+                tracks.add(track);
             }
+        }
+        Storage.trackCache.clear();
+        for(Track track : tracks) {
+            Storage.trackCache.put(track.getFile().getName(), track);
         }
         loaded = true;
     }

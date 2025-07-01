@@ -37,11 +37,13 @@ public class Storage {
     public static final File LIBRARY = new File("library/");
 
     public static Map<String, Object> general;
+    public static Map<String, Track> trackCache;
     private static Queue<LibraryAction> pendingLibraryActions = null;
 
     public static void init() {
         MVStore mvStore = MVStore.open("db");
         general = mvStore.openMap("general");
+        trackCache = mvStore.openMap("trackCache");
         pendingLibraryActions = (Queue<LibraryAction>) general.getOrDefault("pendingLibraryActions", new LinkedList<>());
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Map<String, Map<String, LibraryFilterOption.State>> filters = new HashMap<>();
