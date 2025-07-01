@@ -111,8 +111,11 @@ public class PlaybackSessionListMessage extends Message {
                 }
                 assert toSelect != null;
                 Audio.INSTANCE.setCurrentSession(toSelect);
+
+                PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
                 Library.INSTANCE.reloadFilters();
                 Library.INSTANCE.reloadSorting();
+                PlaybackSessionUpdateMessage.messageBuffer = null;
             }
         } else {
             connection.send(new PlaybackSessionCreateMessage(0, null));
