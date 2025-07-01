@@ -65,6 +65,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ServerConnection {
     public static final int DEFAULT_RECONNECT_TIMEOUT_SECONDS = 5000;
     public static final Timer RETRY_TIMER = new Timer("Server reconnect attempt timer");
+    public static TimerTask RETRY_TASK = null;
 
     public static ServerConnection INSTANCE;
     private static List<ConnectionListener> onConnectListeners = new ArrayList<>();
@@ -178,15 +179,19 @@ public class ServerConnection {
             socket.close();
         } catch (IOException | NullPointerException ignored) {}
         callDisconnectListeners(this);
-        if(reconnectInMilliseconds >= 0) {
-            RETRY_TIMER.schedule(new TimerTask() {
+        if(reconnectInMilliseconds >= 0 && RETRY_TASK == null) {
+            RETRY_TASK = new TimerTask() {
                 @Override
                 public void run() {
+                    // disconnect gets called again inside of the ServerConnection constructor if it fails to connect,
+                    // so you need to set RETRY_TASK to null before actually reconnecting so it can schedule a new reconnect.
+                    RETRY_TASK = null;
                     try {
                         ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
                     } catch(IOException ignored) {}
                 }
-            }, reconnectInMilliseconds);
+            };
+            RETRY_TIMER.schedule(RETRY_TASK, reconnectInMilliseconds);
         }
     }
 
