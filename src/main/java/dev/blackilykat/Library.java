@@ -111,11 +111,21 @@ public class Library {
         for(LibraryFilter filter : audio.currentSession.getLibraryFilters()) {
             LibraryFilterOption[] oldOptions = filter.getOptions();
             filter.reloadOptions();
+            boolean anyPositive = false;
             for(LibraryFilterOption oldOption : oldOptions) {
                 LibraryFilterOption newOption = filter.getOption(oldOption.value);
                 if(newOption == null) continue;
+
                 newOption.setState(oldOption.getState(), false);
+                if(newOption.getState() == LibraryFilterOption.State.POSITIVE) {
+                    anyPositive = true;
+                }
             }
+
+            if(!anyPositive) {
+                filter.getOption(LibraryFilter.OPTION_EVERYTHING).setState(LibraryFilterOption.State.POSITIVE, true);
+            }
+
             filter.session.sendFilterUpdate();
 
             filter.reloadMatching();
