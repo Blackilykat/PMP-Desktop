@@ -354,9 +354,9 @@ public class Audio {
                         //METADATA
                         Map<String, List<String>> metadataMap = new HashMap<>();
                         for(Pair<String, String> metadatum : track.metadata) {
-                            List<String> existingList = metadataMap.get(metadatum.key);
+                            List<String> existingList = metadataMap.get(metadatum.key.toLowerCase());
                             if(existingList == null) {
-                                metadataMap.put(metadatum.key, new ArrayList<>(List.of(metadatum.value)));
+                                metadataMap.put(metadatum.key.toLowerCase(), new ArrayList<>(List.of(metadatum.value)));
                             } else {
                                 existingList.add(metadatum.value);
                             }
