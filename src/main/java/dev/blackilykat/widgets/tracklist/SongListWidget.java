@@ -157,6 +157,8 @@ public class SongListWidget extends Widget {
         for(Track element : Library.INSTANCE.filteredTracks) {
             scrollPaneContents.add(new TrackPanel(element, this));
         }
+        scrollPaneContents.updateUI();
+        scrollPane.updateUI();
         revalidate();
         repaint();
     }
