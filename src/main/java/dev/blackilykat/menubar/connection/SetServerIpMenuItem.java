@@ -25,6 +25,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.io.IOException;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class SetServerIpMenuItem extends JMenuItem {
 
     public SetServerIpMenuItem() {
@@ -56,7 +58,7 @@ public class SetServerIpMenuItem extends JMenuItem {
                     int mainPort = Integer.parseInt(mainPortField.getText());
                     int filePort = Integer.parseInt(filePortField.getText());
                     String ip = ipField.getText();
-                    System.out.printf("Set server ip to %s:%d and %s:%d\n", ip, mainPort, ip, filePort);
+                    LOGGER.info("Set server ip to {}:{} and {}:{}", ip, mainPort, ip, filePort);
 
                     Storage.setServerPublicKey(null);
                     Storage.setServerIp(ip);
@@ -74,7 +76,7 @@ public class SetServerIpMenuItem extends JMenuItem {
                 } catch(NumberFormatException f) {
                     continue;
                 } catch(IOException ex) {
-                    ex.printStackTrace();
+                    LOGGER.warn("Could not connect to server", ex);
                     break;
                 }
                 break;

@@ -39,6 +39,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class LibraryFilterPanel extends JPanel {
     public LibraryFilter filter;
     private LibraryFiltersWidget widget = null;
@@ -78,7 +80,6 @@ public class LibraryFilterPanel extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if(widget != null) {
-
                     assert filter.library.audio != null;
                     assert filter.library.audio.currentSession != null;
                     filter.library.audio.currentSession.removeLibraryFilter(filter);
@@ -87,7 +88,7 @@ public class LibraryFilterPanel extends JPanel {
                     widget.reloadElements();
                     filter.library.reloadFilters();
                 } else {
-                    System.err.println("WARNING: Attempted to delete widgetless filter! Ignoring");
+                    LOGGER.warn("Attempted to delete widgetless filter! Ignoring");
                 }
             }
         });

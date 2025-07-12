@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class Library {
     public static Library INSTANCE = null;
     public Audio audio = null;
@@ -72,7 +74,7 @@ public class Library {
                     track = Storage.trackCache.get(filename);
                     cachedTracks++;
                 } else {
-                    System.out.println(filename + " not cached!");
+                    LOGGER.warn("{} not cached!", filename);
                     track = new Track(result);
                     try {
                         CheckedInputStream inputStream = new CheckedInputStream(new FileInputStream(track.getFile()), new CRC32());
@@ -86,7 +88,7 @@ public class Library {
                 tracks.add(track);
             }
         }
-        System.out.println(cachedTracks + " tracks cached");
+        LOGGER.info("{} tracks cached", cachedTracks);
         Storage.trackCache.clear();
         for(Track track : tracks) {
             Storage.trackCache.put(track.getFile().getName(), track);

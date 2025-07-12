@@ -39,6 +39,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class TrackPanel extends JPanel {
     public final SongListWidget list;
     public List<TrackDataEntry<?>> dataEntries = new ArrayList<>();
@@ -66,14 +68,14 @@ public class TrackPanel extends JPanel {
             }
 
             private void run() {
-                System.out.println("Deleting track " + track.getFile().getName());
+                LOGGER.info("Deleting track {}", track.getFile().getName());
                 track.getFile().delete();
                 if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
                     ServerConnection.INSTANCE.send(LibraryActionMessage.create(LibraryAction.Type.REMOVE, track.getFile().getName()));
                 } else {
                     Storage.pushPendingLibraryAction(new LibraryAction(track.getFile().getName(), LibraryAction.Type.REMOVE));
                 }
-                System.out.println("Deleted track " + track.getFile().getName());
+                LOGGER.info("Deleted track {}", track.getFile().getName());
                 Library.INSTANCE.reloadAll();
             }
         });

@@ -46,6 +46,8 @@ import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class Audio {
 
     public static Audio INSTANCE = null;
@@ -92,10 +94,10 @@ public class Audio {
 
             audioPlayingThread.start();
 
-            System.out.println(sourceDataLine.getBufferSize());
+            LOGGER.info("Line buffer size: {}", sourceDataLine.getBufferSize());
         } catch (LineUnavailableException e) {
             canPlay = false;
-            System.out.println("Can't play!");
+            LOGGER.error("Can't play!", e);
         }
 
         mpris = maybeCreateMprisInstance();
@@ -103,8 +105,7 @@ public class Audio {
 
     public void startPlaying(Track track, boolean reset) {
         if(latestSongLoadingFuture != null) {
-            boolean thing = latestSongLoadingFuture.cancel(true);
-            System.out.println("THING: " + thing);
+            latestSongLoadingFuture.cancel(true);
         }
         latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
             if (!canPlay) return;
@@ -132,7 +133,7 @@ public class Audio {
                     PlayBarWidget.timeBar.setMaximum(0);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Unknown error", e);
             }
             PlaybackSessionUpdateMessage.messageBuffer = null;
         });
@@ -276,7 +277,7 @@ public class Audio {
 
                 }
             } catch(InterruptedException e) {
-                e.printStackTrace();
+                LOGGER.error("Interrupted", e);
             }
             audio.sourceDataLine.drain();
             audio.sourceDataLine.close();
@@ -386,7 +387,7 @@ public class Audio {
                     }
 
                 } catch(DBusException e) {
-                    e.printStackTrace();
+                    LOGGER.error("Unknown DBUS error", e);
                 }
             };
 

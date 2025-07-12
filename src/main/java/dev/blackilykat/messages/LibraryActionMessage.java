@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static dev.blackilykat.Main.LOGGER;
+
 /**
  * Used to notify of changes in the library. For ADD and REPLACE, the server should wait about 10 seconds for a
  * connection to be made to the http server so the clients can upload their files. Clients can expect a successful
@@ -104,14 +106,14 @@ public class LibraryActionMessage extends Message {
                     connection.downloadTrack(fileName);
                 } catch(IOException e) {
                     // Likely means that the track has been removed in a later action.
-                    System.out.println("Could not download track " + fileName);
+                    LOGGER.error("Could not download track {}", fileName);
                 }
                 break;
             case REMOVE:
                 if(new File(Storage.LIBRARY, fileName).delete()) {
-                    System.out.println("Removed track " + fileName);
+                    LOGGER.info("Removed track {}", fileName);
                 } else {
-                    System.out.println("Could not remove track " + fileName);
+                    LOGGER.error("Could not remove track {}", fileName);
                 }
                 break;
             case CHANGE_METADATA:

@@ -32,6 +32,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class FlacFileParser implements PCMProcessor {
     public Audio audio;
     public Metadata[] metadata;
@@ -52,7 +54,7 @@ public class FlacFileParser implements PCMProcessor {
                 decoder.decodeFrames();
             } catch (EOFException ignored) {}
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("IO error", e);
             return false;
         }
         return true;
@@ -67,7 +69,7 @@ public class FlacFileParser implements PCMProcessor {
             currentTrack.notifyAll();
         }
         this.streamInfo = streamInfo;
-        System.out.println("Streaminfo: " + streamInfo.toString());
+        LOGGER.info("Streaminfo: {}", streamInfo);
 
         if(audio.currentSession != null) {
             audio.currentSession.callUpdateListeners();

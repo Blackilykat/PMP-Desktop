@@ -23,6 +23,8 @@ import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.messages.exceptions.MessageInvalidContentsException;
 
+import static dev.blackilykat.Main.LOGGER;
+
 /**
  * Used to communicate that an unexpected error of any kind has occurred.
  */
@@ -77,7 +79,7 @@ public class ErrorMessage extends Message {
     @Override
     public void handle(ServerConnection connection) {
         if(relativeToMessage >= 0 && relativeToMessage == connection.loginMessageId) {
-            System.out.println("Incorrect login!");
+            LOGGER.warn("Incorrect login!");
             Storage.setToken(null);
             String password = ServerConnection.askForPassword();
             if(password != null) {

@@ -62,6 +62,8 @@ import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class ServerConnection {
     public static final int DEFAULT_RECONNECT_TIMEOUT_SECONDS = 5000;
     public static final Timer RETRY_TIMER = new Timer("Server reconnect attempt timer");
@@ -90,7 +92,7 @@ public class ServerConnection {
     public int loginMessageId = -1;
 
     public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
-        System.out.printf("Connecting to server on %s:%d and %s:%d...\n", ip, mainPort, ip, filePort);
+        LOGGER.info("Connecting to server on {}:{} and {}:{}...\n", ip, mainPort, ip, filePort);
         this.ip = ip;
         this.mainPort = mainPort;
         this.filePort = filePort;
@@ -168,7 +170,7 @@ public class ServerConnection {
     }
 
     public void disconnect(long reconnectInMilliseconds) {
-        System.out.println("Disconnecting from server!");
+        LOGGER.warn("Disconnecting from server!");
         connected = false;
         if(clientId != -1) {
             oldClientId = clientId;
@@ -205,7 +207,7 @@ public class ServerConnection {
      */
     public void downloadTrack(String name) throws IOException {
         try {
-            System.out.println("Attempting to download track " + name + "...");
+            LOGGER.info("Attempting to download track {}...", name);
             File destination = new File(Storage.LIBRARY, name);
 
             // HttpsURLConnection hangs with insecure HTTP servers
@@ -222,9 +224,9 @@ public class ServerConnection {
             InputStream connectionInputStream = connection.getInputStream();
             Files.copy(connectionInputStream, destination.toPath());
             if(connection.getResponseCode() == 200) {
-                System.out.println("Successfully downloaded track " + name);
+                LOGGER.info("Successfully downloaded track {}", name);
             } else {
-                System.err.printf("Unexpected response code %d!", connection.getResponseCode());
+                LOGGER.error("Unexpected response code {}!", connection.getResponseCode());
             }
         } catch(URISyntaxException e) {
             throw new RuntimeException(e);
@@ -240,7 +242,7 @@ public class ServerConnection {
      */
     public void uploadTrack(String name, int actionId, boolean replace) {
         try {
-            System.out.println("Attempting to upload track " + name + "...");
+            LOGGER.info("Attempting to upload track {}...", name);
             File source = new File(Storage.LIBRARY, name);
 
             if(supportsInsecureHTTP(ip, filePort)) {
@@ -257,9 +259,9 @@ public class ServerConnection {
             Files.copy(source.toPath(), connectionOutputStream);
             connectionOutputStream.close();
             if(connection.getResponseCode() == 200) {
-                System.out.println("Successfully uploaded track " + name);
+                LOGGER.info("Successfully uploaded track {}", name);
             } else {
-                System.out.println("Unexpected response code " + connection.getResponseCode());
+                LOGGER.error("Unexpected response code {}", connection.getResponseCode());
             }
         } catch(IOException | URISyntaxException e) {
             throw new RuntimeException(e);
@@ -306,7 +308,7 @@ public class ServerConnection {
                     }
                     String messageStr = (message.withMessageId(getMessageIdCounter()).toJson() + "\n");
                     if(!message.getMessageType().equals(LoginMessage.MESSAGE_TYPE)) {
-                        System.out.println("Sending message: " + messageStr);
+                        LOGGER.info("Sending message: {}", messageStr);
                     }
                     outputStream.write(messageStr.getBytes(StandardCharsets.UTF_8));
                     synchronized(message) {
@@ -345,7 +347,7 @@ public class ServerConnection {
                             JsonObject json = Json.fromJsonObject(message);
                             JsonObject printedJson = json.deepCopy();
                             if(printedJson.has("token")) printedJson.addProperty("token", "REDACTED");
-                            System.out.println("Received message: " + printedJson);
+                            LOGGER.info("Received message: {}", printedJson);
                             String messageType;
                             if(json.has("message_type")) {
                                 messageType = json.get("message_type").getAsString();
@@ -379,19 +381,18 @@ public class ServerConnection {
                             parsedMessage.messageId = messageId;
                             parsedMessage.handle(ServerConnection.this);
 
-                            System.out.println("Received message w/ type " + parsedMessage.getMessageType());
+                            LOGGER.info("Received message w/ type {}", parsedMessage.getMessageType());
 
                             increaseMessageIdCounter();
                         } catch (JsonSyntaxException | UnsupportedOperationException e) {
                             increaseMessageIdCounter();
-                            System.err.printf("Invalid message format on message %d: %s", getMessageIdCounter()-1, e.getMessage());
-                            System.err.println("Incorrect message: " + inputBuffer.toString());
+                            LOGGER.error("Invalid message format on message {}: {} (message: {})", getMessageIdCounter()-1, e.getMessage(), inputBuffer.toString());
                         } catch (MessageInvalidContentsException e) {
                             increaseMessageIdCounter();
-                            System.err.printf("Invalid message contents on message %d: %s", getMessageIdCounter()-1, e.getMessage());
+                            LOGGER.error("Invalid message contents on message {}: {}", getMessageIdCounter()-1, e.getMessage());
                         } catch (MessageMissingContentsException e) {
                             increaseMessageIdCounter();
-                            System.err.printf("Missing message contents on message %d: %s", getMessageIdCounter()-1, e.getMessage());
+                            LOGGER.error("Missing message contents on message {}: {}", getMessageIdCounter()-1, e.getMessage());
                         } catch (MessageException ignored) {
                             //unreachable
                         }
@@ -462,8 +463,7 @@ public class ServerConnection {
             // Since this is a desktop application designed to be connected to a network the edge cases are unlikely
             return InetAddress.getLocalHost().getHostName();
         } catch(UnknownHostException e) {
-            System.err.println("Cannot obtain hostname");
-            e.printStackTrace();
+            LOGGER.error("Cannot obtain hostname", e);
             return "Unknown";
         }
     }

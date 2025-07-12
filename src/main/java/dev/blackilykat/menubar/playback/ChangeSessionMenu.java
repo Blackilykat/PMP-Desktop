@@ -31,6 +31,8 @@ import java.time.Instant;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class ChangeSessionMenu extends JMenu {
     public final Audio audio;
     public ChangeSessionMenu(Audio audio) {
@@ -58,7 +60,7 @@ public class ChangeSessionMenu extends JMenu {
     private void addSessionButton(PlaybackSession session) {
         JMenuItem item = new JMenuItem(getItemText(session));
         item.addActionListener(e -> {
-            System.out.println("Switching to session " + session.toString());
+            LOGGER.info("Switching to session {}", session);
             audio.setCurrentSession(session);
         });
         session.registerUpdateListener(s -> {

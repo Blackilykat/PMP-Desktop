@@ -23,6 +23,8 @@ import dev.blackilykat.Storage;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.messages.exceptions.MessageMissingContentsException;
 
+import static dev.blackilykat.Main.LOGGER;
+
 /**
  * The first message the server sends when a client successfully connects (would be after authentication when that gets
  * implemented), used to confirm that it successfully connected and to communicate its
@@ -99,7 +101,7 @@ public class WelcomeMessage extends Message {
         } else if(currentActionId == -1 || currentActionId > latestActionId) {
             Storage.setCurrentActionID(latestActionId);
         }
-        System.out.println("Successfully connected to server with client ID " + clientId + " and device ID " + deviceId);
+        LOGGER.info("Successfully connected to server with client ID {} and device ID {}", clientId,  deviceId);
         ServerConnection.callConnectListeners(connection);
     }
 

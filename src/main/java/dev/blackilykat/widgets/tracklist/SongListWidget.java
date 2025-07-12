@@ -57,6 +57,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class SongListWidget extends Widget {
     public final Audio audio;
     public JPanel scrollPaneContents = new ScrollablePanel();
@@ -191,7 +193,7 @@ public class SongListWidget extends Widget {
                         List<File> files = recurseInDirectories(chooser.getSelectedFiles());
                         for(File originalFile : files) {
                             if(!originalFile.getName().endsWith(".flac")) {
-                                System.out.println("Skipping " + originalFile.getName() + " (no .flac extension)");
+                                LOGGER.warn("Skipping {} (no .flac extension)", originalFile.getName());
                                 continue;
                             }
 
@@ -199,7 +201,7 @@ public class SongListWidget extends Widget {
                                 byte[] expectedBtyes = new byte[]{'f', 'L', 'a', 'C'};
                                 byte[] actualBytes = new byte[4];
                                 if(is.read(actualBytes) < 4 || !Arrays.equals(expectedBtyes, actualBytes)) {
-                                    System.out.println("Skipping " + originalFile.getName() + " (no fLaC magic)");
+                                    LOGGER.warn("Skipping {} (no fLaC magic)", originalFile.getName());
                                     continue;
                                 }
                             }
@@ -223,7 +225,7 @@ public class SongListWidget extends Widget {
                         }
 
                     } catch(IOException e) {
-                        e.printStackTrace();
+                        LOGGER.error("Unknown error", e);
                     }
                 });
             }
@@ -281,8 +283,8 @@ public class SongListWidget extends Widget {
                         ServerConnection.INSTANCE.send(msg);
                         ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
                     }
-                } catch(Throwable e) {
-                    e.printStackTrace();
+                } catch(Exception e) {
+                    LOGGER.error("Unknown error", e);
                 }
             }
         });

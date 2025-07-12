@@ -33,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static dev.blackilykat.Main.LOGGER;
+
 /**
  * Sends every song's filename along with its crc32 hash. Used to make sure libraries dont get desynced, which would
  * ideally happen only if someone goes out of their way to manually edit music files not through the application. This
@@ -115,12 +117,12 @@ public class LibraryHashesMessage extends Message {
                 }
             }
             if(!found) {
-                System.out.println("Client doesnt have " + entry.getKey());
+                LOGGER.warn("Client doesnt have {}", entry.getKey());
                 boolean nevermind = false;
                 for(LibraryAction libraryAction : actionsSent) {
                     if(libraryAction.actionType != LibraryAction.Type.REMOVE) continue;
                     if(!libraryAction.fileName.equals(entry.getKey())) continue;
-                    System.out.println("Nevermind it removed it");
+                    LOGGER.warn("Nevermind it removed it");
                     nevermind = true;
                     break;
                 }
@@ -128,18 +130,18 @@ public class LibraryHashesMessage extends Message {
                     try {
                         ServerConnection.INSTANCE.downloadTrack(entry.getKey());
                     } catch(IOException e) {
-                        System.out.println("Could not download " + entry.getKey());
+                        LOGGER.error("Could not download {}", entry.getKey(), e);
                     }
                     changes = true;
                 }
             } else if(!matches) {
                 //TODO handle
-                System.out.println("!!!!! NO MATCH CHECKSUM " + entry.getKey() + " !!!! (server: " + entry.getValue() + ", client: " + clientValue + ")");
+                LOGGER.warn("!!!!! NO MATCH CHECKSUM {} !!!! (server: {}, client: {})", entry.getKey(), entry.getValue(), clientValue);
                 boolean nevermind = false;
                 for(LibraryAction libraryAction : actionsSent) {
                     if(libraryAction.actionType != LibraryAction.Type.REPLACE && libraryAction.actionType != LibraryAction.Type.CHANGE_METADATA) continue;
                     if(!libraryAction.fileName.equals(entry.getKey())) continue;
-                    System.out.println("Nevermind it replaced it");
+                    LOGGER.warn("Nevermind it replaced it");
                     nevermind = true;
                     break;
                 }
@@ -149,13 +151,13 @@ public class LibraryHashesMessage extends Message {
         for(Track track : Library.INSTANCE.tracks) {
             String name = track.getFile().getName();
             if(!hashes.containsKey(name)) {
-                System.out.println("Server doesn't have " + name);
+                LOGGER.warn("Server doesn't have {}", name);
 
                 boolean nevermind = false;
                 for(LibraryAction libraryAction : actionsSent) {
                     if(libraryAction.actionType != LibraryAction.Type.ADD) continue;
                     if(!libraryAction.fileName.equals(name)) continue;
-                    System.out.println("Nevermind it already sent it");
+                    LOGGER.warn("Nevermind it already sent it");
                     nevermind = true;
                     break;
                 }

@@ -24,6 +24,8 @@ import dev.blackilykat.menubar.playback.ChangeSessionMenu;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -36,6 +38,7 @@ import java.awt.GridBagLayout;
 import java.io.IOException;
 
 public class Main {
+    public static final Logger LOGGER = LogManager.getLogger();
     public static JFrame mainWindow;
     public static GridBagLayout mainWindowLayout;
     public static PlayBarWidget playBarWidget;
@@ -43,6 +46,7 @@ public class Main {
     public static LibraryFiltersWidget libraryFiltersWidget;
 
     public static void main(String[] args) {
+        LOGGER.info("Starting...");
         // enable text antialiasing cause its off by default for some stupid reason
         System.setProperty("awt.useSystemAAFontSettings", "lcd");
 
@@ -121,7 +125,7 @@ public class Main {
         try {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
         } catch (IOException e) {
-            System.out.println("Could not connect to server!");
+            LOGGER.warn("Could not connect to server!");
         }
     }
 }

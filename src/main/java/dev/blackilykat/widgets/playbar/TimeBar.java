@@ -33,6 +33,8 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.time.Instant;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class TimeBar extends JSlider {
     private static final int FRAMERATE_CAP = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode().getRefreshRate();
     private static final long FRAMETIME_CAP_MS = (long) ((1.0 / FRAMERATE_CAP) * 1000);
@@ -46,7 +48,6 @@ public class TimeBar extends JSlider {
     @Override
     public void setValue(int n) {
         Audio.INSTANCE.currentSession.setPosition(n - (n % Audio.INSTANCE.audioFormat.getFrameSize()), true);
-        System.out.println("Changed to " + (n % 4)  + " (" + n  + ")");
     }
 
     @Override

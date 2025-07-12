@@ -23,13 +23,15 @@ import dev.blackilykat.Storage;
 import javax.swing.JMenuItem;
 import java.io.IOException;
 
+import static dev.blackilykat.Main.LOGGER;
+
 public class ConnectToServerMenuItem extends JMenuItem {
     public ConnectToServerMenuItem() {
         super("Connect to server");
         this.setEnabled(ServerConnection.INSTANCE == null || !ServerConnection.INSTANCE.connected);
         this.addActionListener(e -> {
             if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
-                System.out.println("Already connected to server, aborting...");
+                LOGGER.warn("Already connected to server, aborting...");
                 return;
             }
             String ip = Storage.getServerIp();
@@ -38,7 +40,7 @@ public class ConnectToServerMenuItem extends JMenuItem {
             try {
                 ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
             } catch(IOException ex) {
-                ex.printStackTrace();
+                LOGGER.warn("Could not connect to server", ex);
             }
         });
         ServerConnection.addConnectListener(connection -> {
