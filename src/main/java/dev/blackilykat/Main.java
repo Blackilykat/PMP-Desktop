@@ -38,7 +38,7 @@ import java.awt.GridBagLayout;
 import java.io.IOException;
 
 public class Main {
-    public static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger(Main.class);
     public static JFrame mainWindow;
     public static GridBagLayout mainWindowLayout;
     public static PlayBarWidget playBarWidget;
