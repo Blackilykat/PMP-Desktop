@@ -134,8 +134,7 @@ public class LibraryFilter {
                 }
 
                 LibraryFilterOption unknown = this.getOption(OPTION_UNKNOWN);
-                assert unknown != null;
-                if(!hasKey && unknown.getState() == LibraryFilterOption.State.NEGATIVE) {
+                if(unknown != null && !hasKey && unknown.getState() == LibraryFilterOption.State.NEGATIVE) {
                     matchingTracks.remove(track);
                 }
             }
