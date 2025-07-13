@@ -298,6 +298,11 @@ public class ServerConnection {
     }
 
     private class MessageSendingThread extends Thread {
+
+        public MessageSendingThread() {
+            super("Message sending thread");
+        }
+
         @Override
         public void run() {
             try {
@@ -318,8 +323,11 @@ public class ServerConnection {
                 }
             } catch (IOException e) {
                 if(!connected) return;
-                throw new RuntimeException(e);
-            } catch (InterruptedException ignored) {
+                LOGGER.error("IO exception", e);
+            } catch (InterruptedException e) {
+                LOGGER.warn("Interrupted", e);
+            } catch (Exception e) {
+                LOGGER.error("Unknown exception", e);
             } finally {
                 if(connected) disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             }
@@ -327,6 +335,11 @@ public class ServerConnection {
     }
 
     private class InputReadingThread extends Thread {
+
+        public InputReadingThread() {
+            super("Input reading thread");
+        }
+
         @Override
         public void run() {
             Queue<Byte> inputBuffer = new ArrayDeque<>();
@@ -400,7 +413,9 @@ public class ServerConnection {
                 }
             } catch (IOException e) {
                 if(!connected) return;
-                throw new RuntimeException(e);
+                LOGGER.error("IO exception", e);
+            } catch (Exception e) {
+                LOGGER.error("Unknown exception", e);
             } finally {
                 if(connected) disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             }
