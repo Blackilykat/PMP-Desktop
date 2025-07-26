@@ -65,8 +65,8 @@ public class SetServerIpMenuItem extends JMenuItem {
                     Storage.setServerMainPort(mainPort);
                     Storage.setServerFilePort(filePort);
 
-                    if(ServerConnection.RETRY_TASK != null) {
-                        ServerConnection.RETRY_TASK.cancel();
+                    if(ServerConnection.retryTask != null) {
+                        ServerConnection.retryTask.cancel();
                     }
 
                     if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {

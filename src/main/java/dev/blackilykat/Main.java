@@ -21,14 +21,13 @@ import dev.blackilykat.menubar.connection.ConnectToServerMenuItem;
 import dev.blackilykat.menubar.connection.DisconnectFromServerMenuItem;
 import dev.blackilykat.menubar.connection.SetServerIpMenuItem;
 import dev.blackilykat.menubar.playback.ChangeSessionMenu;
+import dev.blackilykat.messages.KeepAliveMessage;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
 import dev.blackilykat.widgets.tracklist.SongListWidget;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -40,6 +39,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.TimerTask;
 
 public class Main {
     public static final Logger LOGGER = LogManager.getLogger(Main.class);
@@ -130,6 +130,14 @@ public class Main {
             mainWindow.setVisible(true);
         });
 
+        ServerConnection.timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                    ServerConnection.INSTANCE.send(new KeepAliveMessage());
+                }
+            }
+        }, KeepAliveMessage.KEEPALIVE_MS, KeepAliveMessage.KEEPALIVE_MS);
         try {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
         } catch (IOException e) {

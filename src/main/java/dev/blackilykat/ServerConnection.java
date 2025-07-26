@@ -54,7 +54,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.Timer;
@@ -66,8 +65,10 @@ import static dev.blackilykat.Main.LOGGER;
 
 public class ServerConnection {
     public static final int DEFAULT_RECONNECT_TIMEOUT_SECONDS = 5000;
-    public static final Timer RETRY_TIMER = new Timer("Server reconnect attempt timer");
-    public static TimerTask RETRY_TASK = null;
+    public static final Timer timer = new Timer("ServerConnection timer");
+
+    public static TimerTask retryTask = null;
+    public static TimerTask keepaliveKillTask = null;
 
     public static ServerConnection INSTANCE;
     private static List<ConnectionListener> onConnectListeners = new ArrayList<>();
@@ -160,6 +161,13 @@ public class ServerConnection {
             this.send(new LoginMessage(token, deviceId, true));
         }
 
+        if(keepaliveKillTask != null) {
+            keepaliveKillTask.cancel();
+        }
+
+        keepaliveKillTask = KeepAliveMessage.makeKillTask();
+        timer.schedule(keepaliveKillTask, KeepAliveMessage.KEEPALIVE_MAX_MS);
+
     }
 
     public void startReading() {
@@ -181,19 +189,19 @@ public class ServerConnection {
             socket.close();
         } catch (IOException | NullPointerException ignored) {}
         callDisconnectListeners(this);
-        if(reconnectInMilliseconds >= 0 && RETRY_TASK == null) {
-            RETRY_TASK = new TimerTask() {
+        if(reconnectInMilliseconds >= 0 && retryTask == null) {
+            retryTask = new TimerTask() {
                 @Override
                 public void run() {
                     // disconnect gets called again inside of the ServerConnection constructor if it fails to connect,
                     // so you need to set RETRY_TASK to null before actually reconnecting so it can schedule a new reconnect.
-                    RETRY_TASK = null;
+                    retryTask = null;
                     try {
                         ServerConnection.INSTANCE = new ServerConnection(ip, mainPort, filePort);
                     } catch(IOException ignored) {}
                 }
             };
-            RETRY_TIMER.schedule(RETRY_TASK, reconnectInMilliseconds);
+            timer.schedule(retryTask, reconnectInMilliseconds);
         }
     }
 
@@ -387,6 +395,7 @@ public class ServerConnection {
                                 case DataHeaderListMessage.MESSAGE_TYPE -> DataHeaderListMessage.fromJson(json);
                                 case LoginMessage.MESSAGE_TYPE -> LoginMessage.fromJson(json);
                                 case LatestHeaderIdMessage.MESSAGE_TYPE -> LatestHeaderIdMessage.fromJson(json);
+                                case KeepAliveMessage.MESSAGE_TYPE -> KeepAliveMessage.fromJson(json);
                                 default -> {
                                     throw new MessageInvalidContentsException("Unknown message_type '"+messageType+"'");
                                 }
