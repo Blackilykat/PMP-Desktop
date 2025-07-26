@@ -319,11 +319,11 @@ public class ServerConnection {
                     if(message instanceof LoginMessage) {
                         ServerConnection.this.loginMessageId = getMessageIdCounter();
                     }
-                    String messageStr = (message.withMessageId(getMessageIdCounter()).toJson() + "\n");
+                    String messageStr = (message.withMessageId(getMessageIdCounter()).toJson());
                     if(!message.getMessageType().equals(LoginMessage.MESSAGE_TYPE)) {
                         LOGGER.info("Sending message: {}", messageStr);
                     }
-                    outputStream.write(messageStr.getBytes(StandardCharsets.UTF_8));
+                    outputStream.write((messageStr + '\n').getBytes(StandardCharsets.UTF_8));
                     synchronized(message) {
                         message.notifyAll();
                     }
