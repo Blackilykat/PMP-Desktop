@@ -141,7 +141,7 @@ public class PlaybackSessionListMessage extends Message {
                     session.getPosition(),
                     PlaybackSessionUpdateMessage.getFiltersFromSession(session),
                     ServerConnection.INSTANCE.clientId,
-                    session.getSortingHeader().id,
+                    session.getSortingHeader() != null ? session.getSortingHeader().id : null,
                     session.getSortingOrder());
         } else {
             Track track = null;
