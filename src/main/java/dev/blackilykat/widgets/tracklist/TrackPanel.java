@@ -178,6 +178,8 @@ public class TrackPanel extends JPanel {
 
     @Override
     public void paintComponent(Graphics g) {
+        // Race condition where the element gets removed right as it's about to be painted
+        if(this.getParent() == null) return;
         g.setColor(this.getParent().getBackground());
         g.fillRect(0, 0, this.getWidth(), this.getHeight());
         g.setColor(this.getBackground());
