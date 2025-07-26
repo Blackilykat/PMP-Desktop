@@ -146,6 +146,13 @@ public class ServerConnection {
         startSending();
         startReading();
 
+        if(keepaliveKillTask != null) {
+            keepaliveKillTask.cancel();
+        }
+
+        keepaliveKillTask = KeepAliveMessage.makeKillTask();
+        timer.schedule(keepaliveKillTask, KeepAliveMessage.KEEPALIVE_MAX_MS);
+
         int deviceId = Storage.getDeviceId();
         String token = Storage.getToken();
         if(deviceId < 1 || token == null) {
@@ -160,14 +167,6 @@ public class ServerConnection {
         } else {
             this.send(new LoginMessage(token, deviceId, true));
         }
-
-        if(keepaliveKillTask != null) {
-            keepaliveKillTask.cancel();
-        }
-
-        keepaliveKillTask = KeepAliveMessage.makeKillTask();
-        timer.schedule(keepaliveKillTask, KeepAliveMessage.KEEPALIVE_MAX_MS);
-
     }
 
     public void startReading() {
