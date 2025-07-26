@@ -17,7 +17,6 @@
 
 package dev.blackilykat;
 
-import dev.blackilykat.messages.PlaybackSessionCreateMessage;
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.parsers.FlacFileParser;
 import dev.blackilykat.util.Pair;
@@ -49,6 +48,7 @@ import javax.sound.sampled.SourceDataLine;
 import static dev.blackilykat.Main.LOGGER;
 
 public class Audio {
+    public static final int BUFFER_SIZE = 8800;
 
     public static Audio INSTANCE = null;
     boolean canPlay = true;
@@ -69,7 +69,7 @@ public class Audio {
     private Line.Info info = new DataLine.Info(
             SourceDataLine.class,
             audioFormat,
-            2200);
+            BUFFER_SIZE);
 
     private SourceDataLine sourceDataLine;
 
@@ -89,7 +89,7 @@ public class Audio {
         currentSession.register();
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(info);
-            sourceDataLine.open(audioFormat, 2200);
+            sourceDataLine.open(audioFormat, BUFFER_SIZE);
             sourceDataLine.start();
 
             audioPlayingThread.start();
