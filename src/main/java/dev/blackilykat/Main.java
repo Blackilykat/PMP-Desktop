@@ -20,6 +20,7 @@ package dev.blackilykat;
 import dev.blackilykat.menubar.connection.ConnectToServerMenuItem;
 import dev.blackilykat.menubar.connection.DisconnectFromServerMenuItem;
 import dev.blackilykat.menubar.connection.SetServerIpMenuItem;
+import dev.blackilykat.menubar.debug.EnterLogMenuItem;
 import dev.blackilykat.menubar.playback.ChangeSessionMenu;
 import dev.blackilykat.messages.KeepAliveMessage;
 import dev.blackilykat.widgets.filters.LibraryFiltersWidget;
@@ -122,9 +123,14 @@ public class Main {
             connectionMenu.add(new DisconnectFromServerMenuItem());
             menuBar.add(connectionMenu);
 
-            JMenu playbackmenu = new JMenu("Playback");
-            playbackmenu.add(new ChangeSessionMenu(Audio.INSTANCE));
-            menuBar.add(playbackmenu);
+            JMenu playbackMenu = new JMenu("Playback");
+            playbackMenu.add(new ChangeSessionMenu(Audio.INSTANCE));
+            menuBar.add(playbackMenu);
+
+            JMenu debugMenu = new JMenu("Debug");
+            debugMenu.add(new EnterLogMenuItem());
+            menuBar.add(debugMenu);
+
             mainWindow.setJMenuBar(menuBar);
 
             mainWindow.setVisible(true);
