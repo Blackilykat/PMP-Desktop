@@ -90,7 +90,6 @@ public class ServerConnection {
     public InputReadingThread inputReadingThread = new InputReadingThread();
     public Key serverPublicKey = null;
     public SSLContext sslContext = null;
-    public int loginMessageId = -1;
 
     public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
         LOGGER.info("Connecting to server on {}:{} and {}:{}...\n", ip, mainPort, ip, filePort);
@@ -315,9 +314,6 @@ public class ServerConnection {
             try {
                 while (true) {
                     Message message = messageQueue.take();
-                    if(message instanceof LoginMessage) {
-                        ServerConnection.this.loginMessageId = getMessageIdCounter();
-                    }
                     String messageStr = (message.withMessageId(getMessageIdCounter()).toJson());
                     if(!message.getMessageType().equals(LoginMessage.MESSAGE_TYPE)) {
                         LOGGER.info("Sending message: {}", messageStr);
