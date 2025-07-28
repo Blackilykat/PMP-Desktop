@@ -79,7 +79,7 @@ public class TrackDataHeader {
                 songListWidget.refreshHeaders();
                 Main.songListWidget.refreshTracks();
 
-                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
                     DataHeaderListMessage msg = new DataHeaderListMessage();
                     for(TrackDataHeader header : songListWidget.dataHeaders) {
                         msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
@@ -118,7 +118,7 @@ public class TrackDataHeader {
                 songListWidget.refreshHeaders();
                 Main.songListWidget.refreshTracks();
 
-                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
                     DataHeaderListMessage msg = new DataHeaderListMessage();
                     for(TrackDataHeader header : songListWidget.dataHeaders) {
                         msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));

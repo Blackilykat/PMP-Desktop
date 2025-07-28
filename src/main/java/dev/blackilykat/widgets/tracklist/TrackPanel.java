@@ -70,7 +70,7 @@ public class TrackPanel extends JPanel {
             private void run() {
                 LOGGER.info("Deleting track {}", track.getFile().getName());
                 track.getFile().delete();
-                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.connected) {
+                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
                     ServerConnection.INSTANCE.send(LibraryActionMessage.create(LibraryAction.Type.REMOVE, track.getFile().getName()));
                 } else {
                     Storage.pushPendingLibraryAction(new LibraryAction(track.getFile().getName(), LibraryAction.Type.REMOVE));

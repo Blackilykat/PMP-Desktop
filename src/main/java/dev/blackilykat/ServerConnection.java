@@ -86,6 +86,7 @@ public class ServerConnection {
     public int clientId = -1;
     public int deviceId = -1;
     public boolean connected = false;
+    public boolean loggedIn = false;
     public MessageSendingThread messageSendingThread = new MessageSendingThread();
     public InputReadingThread inputReadingThread = new InputReadingThread();
     public Key serverPublicKey = null;
@@ -137,6 +138,7 @@ public class ServerConnection {
             this.socket = (SSLSocket) sslContext.getSocketFactory().createSocket(InetAddress.getByName(ip), mainPort);
             this.inputStream = socket.getInputStream();
             this.outputStream = socket.getOutputStream();
+            this.outputStream.write(new byte[]{'P', 'M', 'P', '\n'});
         } catch(IOException e) {
             disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
             throw e;
@@ -275,7 +277,7 @@ public class ServerConnection {
     }
 
     public void sendAddTrack(String name) {
-        if(connected) {
+        if(loggedIn) {
             LibraryActionMessage action = LibraryActionMessage.create(LibraryAction.Type.ADD, name);
             this.send(action);
             synchronized(action) {
@@ -359,6 +361,16 @@ public class ServerConnection {
                             msg[i] = inputBuffer.poll();
                         }
                         String message = new String(msg, StandardCharsets.UTF_8);
+                        if(message.equals("PMP")) {
+                            LOGGER.info("Received PMP signature");
+                            connected = true;
+                            continue;
+                        }
+                        if(!connected) {
+                            LOGGER.error("Server did not send PMP signature. Disconnecting");
+                            disconnect(DEFAULT_RECONNECT_TIMEOUT_SECONDS);
+                            break;
+                        }
                         try {
                             JsonObject json = Json.fromJsonObject(message);
                             JsonObject printedJson = json.deepCopy();

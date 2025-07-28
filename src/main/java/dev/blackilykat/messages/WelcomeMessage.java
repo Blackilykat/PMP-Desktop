@@ -86,7 +86,7 @@ public class WelcomeMessage extends Message {
 
     @Override
     public void handle(ServerConnection connection) {
-        connection.connected = true;
+        connection.loggedIn = true;
         connection.clientId = clientId;
         connection.deviceId = deviceId;
 
