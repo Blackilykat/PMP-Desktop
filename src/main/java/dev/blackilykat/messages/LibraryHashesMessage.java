@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import dev.blackilykat.Json;
 import dev.blackilykat.Library;
 import dev.blackilykat.LibraryAction;
+import dev.blackilykat.LibraryActionSenderThread;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
@@ -86,19 +87,29 @@ public class LibraryHashesMessage extends Message {
         // system which really doesn't need to exist
         List<LibraryAction> actionsSent = new ArrayList<>();
         LibraryAction pendingAction;
-        while((pendingAction = Storage.popPendingLibraryAction()) != null) {
-            if(pendingAction.actionType != LibraryAction.Type.ADD) {
-                LibraryActionMessage msg;
-                if(pendingAction.actionType != LibraryAction.Type.CHANGE_METADATA) {
-                    msg = LibraryActionMessage.create(pendingAction.actionType, pendingAction.fileName);
-                } else {
-                    msg = LibraryActionMessage.create(pendingAction.actionType, pendingAction.fileName, pendingAction.newMetadata);
+
+        while((pendingAction = Storage.peekPendingLibraryAction()) != null) {
+            if(pendingAction.actionType == LibraryAction.Type.ADD || pendingAction.actionType == LibraryAction.Type.REPLACE) {
+                LibraryActionMessage msg = pendingAction.toMessage();
+
+                ServerConnection.INSTANCE.send(msg);
+                synchronized(msg) {
+                    try {
+                        msg.wait();
+                    } catch(InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-                connection.send(msg);
+                try {
+                    ServerConnection.INSTANCE.uploadTrack(pendingAction.fileName, msg.actionId, pendingAction.actionType == LibraryAction.Type.REPLACE);
+                } catch(IOException e) {
+                    throw new RuntimeException(e);
+                }
             } else {
-                connection.sendAddTrack(pendingAction.fileName);
+                connection.send(pendingAction.toMessage());
             }
             actionsSent.add(pendingAction);
+            Storage.popPendingLibraryAction();
         }
 
         boolean changes = false;
@@ -162,7 +173,7 @@ public class LibraryHashesMessage extends Message {
                     break;
                 }
                 if(!nevermind) {
-                    ServerConnection.INSTANCE.sendAddTrack(name);
+                    Storage.pushPendingLibraryAction(new LibraryAction(name, LibraryAction.Type.ADD));
                     changes = true;
                 }
             }
@@ -170,6 +181,8 @@ public class LibraryHashesMessage extends Message {
         if(changes) {
             Library.INSTANCE.reloadAll();
         }
+
+        LibraryActionSenderThread.setAllowed(true);
     }
 
     //@Override

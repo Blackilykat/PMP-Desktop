@@ -217,11 +217,7 @@ public class SongListWidget extends Widget {
 
                             Library.INSTANCE.reloadAll();
 
-                            if(ServerConnection.INSTANCE != null) {
-                                ServerConnection.INSTANCE.sendAddTrack(newFile.getName());
-                            } else {
-                                Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
-                            }
+                            Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
                         }
 
                     } catch(IOException e) {

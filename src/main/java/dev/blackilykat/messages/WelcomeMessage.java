@@ -103,6 +103,10 @@ public class WelcomeMessage extends Message {
         }
         LOGGER.info("Successfully connected to server with client ID {} and device ID {}", clientId,  deviceId);
         ServerConnection.callConnectListeners(connection);
+
+        synchronized(ServerConnection.loggedInLock) {
+            ServerConnection.loggedInLock.notifyAll();
+        }
     }
 
     //@Override

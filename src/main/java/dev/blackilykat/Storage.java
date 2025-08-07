@@ -39,6 +39,7 @@ public class Storage {
     public static Map<String, Object> general;
     public static Map<String, Track> trackCache;
     private static Queue<LibraryAction> pendingLibraryActions = null;
+    private static final Object actionLock = new Object();
 
     public static void init() {
         MVStore mvStore = MVStore.open("db");
@@ -159,12 +160,46 @@ public class Storage {
         general.put("serverFilePort", port);
     }
 
+    /**
+     * Adds an action to the queue.
+     */
     public static void pushPendingLibraryAction(LibraryAction action) {
-        pendingLibraryActions.offer(action);
+        pendingLibraryActions.add(action);
+        synchronized(actionLock) {
+            actionLock.notify();
+        }
     }
 
+    /**
+     * Pops a pending action form the queue. Meant to be called after {@link #blockingPeekPendingLibraryAction()}, so this does
+     * not block.
+     * @throws java.util.NoSuchElementException if the queue is empty
+     */
     public static LibraryAction popPendingLibraryAction() {
-        return pendingLibraryActions.poll();
+        return pendingLibraryActions.remove();
+    }
+
+    /**
+     * Waits for there to be a library action in the queue, then returns it. This is the equivalent of a blocking
+     * {@link Queue#peek()}, which does not exist for BlockingQueues.
+     */
+    public static LibraryAction blockingPeekPendingLibraryAction() throws InterruptedException {
+        LibraryAction action;
+        while((action = pendingLibraryActions.peek()) == null) {
+            synchronized(actionLock) {
+                actionLock.wait();
+            }
+        }
+
+        return action;
+    }
+
+    /**
+     * Returns the first library action in the queue, or null if it's empty. This is the equivalent of a
+     * {@link Queue#peek()}.
+     */
+    public static LibraryAction peekPendingLibraryAction() {
+        return pendingLibraryActions.peek();
     }
 
     public static int getLatestHeaderId() {

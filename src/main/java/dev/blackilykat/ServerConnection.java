@@ -67,6 +67,9 @@ public class ServerConnection {
     public static final int DEFAULT_RECONNECT_TIMEOUT_SECONDS = 5000;
     public static final Timer timer = new Timer("ServerConnection timer");
 
+    public static final Object connectedLock = new Object();
+    public static final Object loggedInLock = new Object();
+
     public static TimerTask retryTask = null;
     public static TimerTask keepaliveKillTask = null;
 
@@ -93,7 +96,7 @@ public class ServerConnection {
     public SSLContext sslContext = null;
 
     public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
-        LOGGER.info("Connecting to server on {}:{} and {}:{}...\n", ip, mainPort, ip, filePort);
+        LOGGER.info("Connecting to server on {}:{} and {}:{}...", ip, mainPort, ip, filePort);
         this.ip = ip;
         this.mainPort = mainPort;
         this.filePort = filePort;
@@ -180,6 +183,7 @@ public class ServerConnection {
     public void disconnect(long reconnectInMilliseconds) {
         LOGGER.warn("Disconnecting from server!");
         connected = false;
+        loggedIn = false;
         if(clientId != -1) {
             oldClientId = clientId;
         }
@@ -202,6 +206,14 @@ public class ServerConnection {
                 }
             };
             timer.schedule(retryTask, reconnectInMilliseconds);
+        }
+
+        synchronized(connectedLock) {
+            connectedLock.notifyAll();
+        }
+
+        synchronized(loggedInLock) {
+            loggedInLock.notifyAll();
         }
     }
 
@@ -248,7 +260,7 @@ public class ServerConnection {
      * @param replace if this is supposed to replace an existing file. In practice, switches between POST and PUT http
      *                request methods.
      */
-    public void uploadTrack(String name, int actionId, boolean replace) {
+    public void uploadTrack(String name, int actionId, boolean replace) throws IOException {
         try {
             LOGGER.info("Attempting to upload track {}...", name);
             File source = new File(Storage.LIBRARY, name);
@@ -271,26 +283,8 @@ public class ServerConnection {
             } else {
                 LOGGER.error("Unexpected response code {}", connection.getResponseCode());
             }
-        } catch(IOException | URISyntaxException e) {
+        } catch(URISyntaxException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public void sendAddTrack(String name) {
-        if(loggedIn) {
-            LibraryActionMessage action = LibraryActionMessage.create(LibraryAction.Type.ADD, name);
-            this.send(action);
-            synchronized(action) {
-                try {
-                    action.wait();
-                } catch(InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            //TODO might wanna multi thread here
-            this.uploadTrack(name, action.actionId, false);
-        } else {
-            Storage.pushPendingLibraryAction(new LibraryAction(name, LibraryAction.Type.ADD));
         }
     }
 

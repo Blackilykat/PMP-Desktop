@@ -144,6 +144,9 @@ public class Main {
                 }
             }
         }, KeepAliveMessage.KEEPALIVE_MS, KeepAliveMessage.KEEPALIVE_MS);
+
+        new LibraryActionSenderThread().start();
+
         try {
             ServerConnection.INSTANCE = new ServerConnection(Storage.getServerIp(), Storage.getServerMainPort(), Storage.getServerFilePort());
         } catch (IOException e) {
