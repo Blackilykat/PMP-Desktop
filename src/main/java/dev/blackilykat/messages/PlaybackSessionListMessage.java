@@ -134,7 +134,7 @@ public class PlaybackSessionListMessage extends Message {
             session.recalculatePosition(Instant.now());
             session.setOwnerId(ServerConnection.INSTANCE.clientId);
             PlaybackSessionUpdateMessage.doUpdate(session.id,
-                    session.getCurrentTrack().getFile().getName(),
+                    session.getCurrentTrack() != null ? session.getCurrentTrack().getFile().getName() : null,
                     session.getShuffle(),
                     session.getRepeat(),
                     session.getPlaying(),
