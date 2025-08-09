@@ -36,13 +36,14 @@ import java.util.Queue;
 public class Storage {
     public static final File LIBRARY = new File("library/");
 
+    public static MVStore mvStore;
     public static Map<String, Object> general;
     public static Map<String, Track> trackCache;
     private static Queue<LibraryAction> pendingLibraryActions = null;
     private static final Object actionLock = new Object();
 
     public static void init() {
-        MVStore mvStore = MVStore.open("db");
+        mvStore = MVStore.open("db");
         general = mvStore.openMap("general");
         trackCache = mvStore.openMap("trackCache");
         pendingLibraryActions = (Queue<LibraryAction>) general.getOrDefault("pendingLibraryActions", new LinkedList<>());

@@ -107,6 +107,8 @@ public class WelcomeMessage extends Message {
         synchronized(ServerConnection.loggedInLock) {
             ServerConnection.loggedInLock.notifyAll();
         }
+
+        Storage.mvStore.commit();
     }
 
     //@Override
