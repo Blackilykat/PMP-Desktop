@@ -35,21 +35,23 @@ import java.io.IOException;
 import static dev.blackilykat.Main.LOGGER;
 
 public class FlacFileParser implements PCMProcessor {
-    public Audio audio;
-    public Metadata[] metadata;
+    public final Audio audio;
+    public final Track track;
     public StreamInfo streamInfo;
+
     public int bytesProcessed = 0;
-    public FlacFileParser(Audio audio) {
+    public FlacFileParser(Audio audio, Track track) {
         this.audio = audio;
+        this.track = track;
     }
 
-    public static boolean parse(File file, Audio audio) {
+    public static boolean parse(Track track, Audio audio) {
         try {
-            FLACDecoder decoder = new FLACDecoder(new FileInputStream(file));
-            FlacFileParser instance = new FlacFileParser(audio);
+            FLACDecoder decoder = new FLACDecoder(new FileInputStream(track.getFile()));
+            FlacFileParser instance = new FlacFileParser(audio, track);
             decoder.addPCMProcessor(instance);
-            instance.metadata = decoder.readMetadata();
-            audio.currentSession.getCurrentTrack().loaded = 0;
+            decoder.readMetadata();
+            track.loaded = 0;
             try {
                 decoder.decodeFrames();
             } catch (EOFException ignored) {}
@@ -62,11 +64,10 @@ public class FlacFileParser implements PCMProcessor {
 
     @Override
     public void processStreamInfo(StreamInfo streamInfo) {
-        Track currentTrack = audio.currentSession.getCurrentTrack();
         long unprocessedLength = streamInfo.getTotalSamples() * streamInfo.getBitsPerSample() * streamInfo.getChannels() / 8;
-        currentTrack.pcmData = new byte[((Double)(unprocessedLength * (2.0/streamInfo.getBitsPerSample()*8) * ((double) audio.audioFormat.getChannels()/streamInfo.getChannels()) * (audio.audioFormat.getSampleRate() / streamInfo.getSampleRate()))).intValue()];
-        synchronized(currentTrack) {
-            currentTrack.notifyAll();
+        track.pcmData = new byte[((Double)(unprocessedLength * (2.0/streamInfo.getBitsPerSample()*8) * ((double) audio.audioFormat.getChannels()/streamInfo.getChannels()) * (audio.audioFormat.getSampleRate() / streamInfo.getSampleRate()))).intValue()];
+        synchronized(track) {
+            track.notifyAll();
         }
         this.streamInfo = streamInfo;
         LOGGER.info("Streaminfo: {}", streamInfo);
@@ -141,11 +142,10 @@ public class FlacFileParser implements PCMProcessor {
                 }
             }
         }
-        Track currentTrack = audio.currentSession.getCurrentTrack();
 
-        System.arraycopy(parsedData, 0, currentTrack.pcmData, bytesProcessed, parsedData.length);
+        System.arraycopy(parsedData, 0, track.pcmData, bytesProcessed, parsedData.length);
         bytesProcessed += parsedData.length;
-        currentTrack.loaded = bytesProcessed;
+        track.loaded = bytesProcessed;
         PlayBarWidget.timeBar.update();
     }
 

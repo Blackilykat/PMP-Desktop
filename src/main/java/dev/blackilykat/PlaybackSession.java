@@ -218,6 +218,19 @@ public class PlaybackSession {
         return currentTrack;
     }
 
+    public Track peekTrack() {
+        if(!nextTracks.isEmpty()) {
+            return nextTracks.peek();
+        }
+
+        Track next = pickNext();
+        if(next != null) {
+            nextTracks.push(next);
+        }
+
+        return next;
+    }
+
     public Track previousTrack() {
         if(previousTracks.isEmpty()) return null;
         if(currentTrack != null) {

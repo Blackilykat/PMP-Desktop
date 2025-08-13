@@ -50,6 +50,9 @@ import static dev.blackilykat.Main.LOGGER;
 public class Audio {
     public static final int BUFFER_SIZE = 8800;
 
+    public Track loadedTrack = null;
+    public Track preLoadedTrack = null;
+
     public static Audio INSTANCE = null;
     boolean canPlay = true;
 
@@ -79,6 +82,9 @@ public class Audio {
     ThreadPoolExecutor songLoadingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
     Future<?> latestSongLoadingFuture;
 
+    ThreadPoolExecutor songPreLoadingExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+    Future<?> latestSongPreLoadingFuture;
+
     public final Library library;
 
     public final MPRISMP2None mpris;
@@ -104,44 +110,77 @@ public class Audio {
     }
 
     public void startPlaying(Track track, boolean reset) {
-        if(latestSongLoadingFuture != null) {
-            latestSongLoadingFuture.cancel(true);
-        }
-        latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
-            if (!canPlay) return;
-            // reset is true when the action was caused by this client (so send it to the server) and false when it was caused by the server
-            if(reset) {
-                PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null, null, null, null);
-            }
-            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(currentSession.id, null, null,
-                    null, null, null, null, null, null, null, Instant.now());
-            try {
-                currentSession.setCurrentTrack(track);
-                if (reset) {
-                    currentSession.setPosition(0, true);
-                    setPlaying(true);
-                    if(ServerConnection.INSTANCE != null) {
-                        ServerConnection.INSTANCE.send(PlaybackSessionUpdateMessage.messageBuffer);
-                    }
-                }
-                if(track != null) {
-                    reloadSong();
-                    PlayBarWidget.timeBar.setMinimum(0);
-                    PlayBarWidget.timeBar.setMaximum(track.pcmData.length);
-                } else {
-                    PlayBarWidget.timeBar.setMinimum(0);
-                    PlayBarWidget.timeBar.setMaximum(0);
-                }
-            } catch (Exception e) {
-                LOGGER.error("Unknown error", e);
-            }
-            PlaybackSessionUpdateMessage.messageBuffer = null;
-        });
+        if(!canPlay) return;
 
+        // reset is true when the action was caused by this client (so send it to the server) and false when it was caused by the server
+        if(reset) {
+            PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null, null, null, null);
+        }
+        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(currentSession.id, null, null,
+                null, null, null, null, null, null, null, Instant.now());
+        currentSession.setCurrentTrack(track);
+        if(reset) {
+            currentSession.setPosition(0, true);
+            setPlaying(true);
+            if(ServerConnection.INSTANCE != null) {
+                ServerConnection.INSTANCE.send(PlaybackSessionUpdateMessage.messageBuffer);
+            }
+        }
+        PlaybackSessionUpdateMessage.messageBuffer = null;
+
+        if(preLoadedTrack != track) {
+            if(latestSongLoadingFuture != null) {
+                latestSongLoadingFuture.cancel(true);
+            }
+
+            if(loadedTrack != track) {
+                if(loadedTrack != null) {
+                    loadedTrack.pcmData = null;
+                }
+                loadedTrack = track;
+
+                latestSongLoadingFuture = songLoadingExecutor.submit(() -> {
+                    try {
+                        if(track != null) {
+                            FlacFileParser.parse(track, this);
+                            PlayBarWidget.timeBar.setMinimum(0);
+                            PlayBarWidget.timeBar.setMaximum(track.pcmData.length);
+                        } else {
+                            PlayBarWidget.timeBar.setMinimum(0);
+                            PlayBarWidget.timeBar.setMaximum(0);
+                        }
+                    } catch(Exception e) {
+                        LOGGER.error("Unknown error", e);
+                    }
+                });
+            }
+
+            if(preLoadedTrack != null) {
+                preLoadedTrack.pcmData = null;
+            }
+        } else {
+            PlayBarWidget.timeBar.setMinimum(0);
+            PlayBarWidget.timeBar.setMaximum(track != null ? track.pcmData.length : 0);
+        }
+        preLoadedTrack = null;
     }
 
-    public boolean reloadSong() {
-        return FlacFileParser.parse(currentSession.getCurrentTrack().getFile(), this);
+    public void preLoad(Track track) {
+        if(preLoadedTrack == track) return;
+
+        if(preLoadedTrack != null) {
+            preLoadedTrack.pcmData = null;
+        }
+
+        preLoadedTrack = track;
+
+        if(latestSongPreLoadingFuture != null) {
+            latestSongPreLoadingFuture.cancel(true);
+        }
+
+        latestSongPreLoadingFuture = songPreLoadingExecutor.submit(() -> {
+            FlacFileParser.parse(track, this);
+        });
     }
 
     public void setPlaying(boolean playing) {
@@ -195,6 +234,12 @@ public class Audio {
         if(next != null) startPlaying(next, true);
     }
 
+    public void preLoadNextTrack() {
+        if(currentSession == null) return;
+        Track next = currentSession.peekTrack();
+        if(next != null) preLoad(next);
+    }
+
     public void previousTrack() {
         if(currentSession == null) return;
         currentSession.setPlaying(false);
@@ -236,6 +281,9 @@ public class Audio {
 
                     byte[] buffer = new byte[bufferSize];
                     synchronized(audio.audioLock) {
+                        if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - (audio.audioFormat.getSampleSizeInBits() * audio.audioFormat.getSampleRate() / 8)) {
+                            audio.preLoadNextTrack();
+                        }
 
                         if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - 4) {
                             audio.nextTrack();
