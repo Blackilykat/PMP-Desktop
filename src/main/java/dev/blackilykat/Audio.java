@@ -280,6 +280,7 @@ public class Audio {
                     }
 
                     byte[] buffer = new byte[bufferSize];
+                    int wrote = 0;
                     synchronized(audio.audioLock) {
                         if(audio.currentSession.getPosition() >= currentTrack.pcmData.length - (audio.audioFormat.getSampleSizeInBits() * audio.audioFormat.getSampleRate() / 8)) {
                             audio.preLoadNextTrack();
@@ -317,11 +318,12 @@ public class Audio {
                                 buffer[i + 2] = currentTrack.pcmData[position + 3];
                             }
                             audio.currentSession.setPosition(position + 4, false);
+                            wrote += 4;
                         }
                     }
                     // do NOT move this in the synchronized block (it won't let go and will freeze
                     // the entire gui on ChangeSessionMenu)
-                    audio.sourceDataLine.write(buffer, 0, bufferSize);
+                    audio.sourceDataLine.write(buffer, 0, wrote);
 
                 }
             } catch(InterruptedException e) {
