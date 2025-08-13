@@ -160,7 +160,7 @@ public class Audio {
             }
         } else {
             PlayBarWidget.timeBar.setMinimum(0);
-            PlayBarWidget.timeBar.setMaximum(track != null ? track.pcmData.length : 0);
+            PlayBarWidget.timeBar.setMaximum(track != null ? track.pcmData != null ? track.pcmData.length : 0 : 0);
         }
         preLoadedTrack = null;
     }
@@ -196,19 +196,12 @@ public class Audio {
             if(this.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
                 this.currentSession.setOwnerId(-1);
             }
-            if(session.getOwnerId() == -1) {
-                session.setOwnerId(ServerConnection.INSTANCE.clientId);
-            }
         }
 
         PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
                 null, null, null, null, null, null, null, Instant.now());
         // avoid changing stuff null WHILE it's processing
         synchronized(this.audioLock) {
-            Track oldTrack = this.currentSession.getCurrentTrack();
-            if(oldTrack != null) {
-                oldTrack.pcmData = null;
-            }
             if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
                 session.recalculatePosition(Instant.now());
             }
@@ -225,6 +218,28 @@ public class Audio {
 
         Main.libraryFiltersWidget.reloadPanels();
         Main.libraryFiltersWidget.reloadElements();
+    }
+
+    public void reselectSession(boolean takeOwnership) {
+        PlaybackSession toSelect = null;
+        int highestRanking = -1;
+        for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
+            int currentRanking = session.getPrecedenceRanking();
+            if(currentRanking > highestRanking) {
+                toSelect = session;
+                highestRanking = currentRanking;
+            }
+        }
+        assert toSelect != null;
+        this.setCurrentSession(toSelect);
+        if(takeOwnership && toSelect.getOwnerId() == -1 && ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
+            toSelect.setOwnerId(ServerConnection.INSTANCE.clientId);
+        }
+
+        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
+        library.reloadFilters();
+        library.reloadSorting();
+        PlaybackSessionUpdateMessage.messageBuffer = null;
     }
 
     public void nextTrack() {
@@ -328,6 +343,8 @@ public class Audio {
                 }
             } catch(InterruptedException e) {
                 LOGGER.error("Interrupted", e);
+            } catch(Exception e) {
+                LOGGER.error("Unknown exception", e);
             }
             audio.sourceDataLine.drain();
             audio.sourceDataLine.close();

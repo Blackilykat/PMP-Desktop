@@ -24,10 +24,15 @@ import dev.blackilykat.PlaybackSession;
 import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.PlaybackSessionCreateMessage;
+import dev.blackilykat.messages.PlaybackSessionDeleteMessage;
 import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.Instant;
 
+import javax.swing.AbstractAction;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
@@ -58,11 +63,41 @@ public class ChangeSessionMenu extends JMenu {
         });
     }
     private void addSessionButton(PlaybackSession session) {
-        JMenuItem item = new JMenuItem(getItemText(session));
-        item.addActionListener(e -> {
-            LOGGER.info("Switching to session {}", session);
-            audio.setCurrentSession(session);
+        JMenu item = new JMenu(getItemText(session));
+
+        item.add(new AbstractAction("Take ownership") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                LOGGER.info("Taking ownership of session {}", session);
+                audio.setCurrentSession(session);
+                session.setOwnerId(ServerConnection.INSTANCE.clientId);
+            }
         });
+
+        item.add(new AbstractAction("Watch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                LOGGER.info("Watching session {}", session);
+                audio.setCurrentSession(session);
+            }
+        });
+
+
+        item.add(new AbstractAction("Delete") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                LOGGER.info("Deleting session {}", session);
+                session.unregister();
+                if(Audio.INSTANCE.currentSession == session) {
+                    Audio.INSTANCE.reselectSession(false);
+                }
+
+                if(ServerConnection.INSTANCE != null) {
+                    ServerConnection.INSTANCE.send(new PlaybackSessionDeleteMessage(session.id));
+                }
+            }
+        });
+
         session.registerUpdateListener(s -> {
             item.setText(getItemText(s));
             // rezise the menu accordingly

@@ -100,22 +100,7 @@ public class PlaybackSessionListMessage extends Message {
             }
 
             if(shouldReselect) {
-                PlaybackSession toSelect = null;
-                int highestRanking = -1;
-                for(PlaybackSession session : PlaybackSession.getAvailableSessions()) {
-                    int currentRanking = session.getPrecedenceRanking();
-                    if(currentRanking > highestRanking) {
-                        toSelect = session;
-                        highestRanking = currentRanking;
-                    }
-                }
-                assert toSelect != null;
-                Audio.INSTANCE.setCurrentSession(toSelect);
-
-                PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
-                Library.INSTANCE.reloadFilters();
-                Library.INSTANCE.reloadSorting();
-                PlaybackSessionUpdateMessage.messageBuffer = null;
+                Audio.INSTANCE.reselectSession(true);
             }
         } else {
             connection.send(new PlaybackSessionCreateMessage(0, null));

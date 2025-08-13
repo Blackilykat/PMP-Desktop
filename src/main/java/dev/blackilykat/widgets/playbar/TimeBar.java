@@ -196,6 +196,7 @@ public class TimeBar extends JSlider {
                 Track currentTrack = Audio.INSTANCE.currentSession.getCurrentTrack();
 
                 if(currentTrack == null) return;
+                if(currentTrack.pcmData == null) return;
 
                 double pos = e.getX() - trackRect.getX();
                 double percent = pos / trackRect.width;
