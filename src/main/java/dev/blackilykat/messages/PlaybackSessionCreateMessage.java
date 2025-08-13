@@ -79,6 +79,8 @@ public class PlaybackSessionCreateMessage extends Message {
             session.acknowledgedByServer = true;
             session.register();
         }
+
+        PlaybackSession.idCounter = requestId;
     }
 
     //@Override
