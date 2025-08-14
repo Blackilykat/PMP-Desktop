@@ -113,7 +113,7 @@ public class PlaybackSessionListMessage extends Message {
     private static void applyToPlaybackSession(PlaybackSession session, PlaybackSessionElement element) {
         assert ServerConnection.INSTANCE != null;
         boolean allowedToOverride = session.getOwnerId() == ServerConnection.oldClientId || session.getOwnerId() == -1;
-        boolean hasNewerInfo = element.lastUpdateTime == null || (session.lastSharedPositionTime != null && session.lastSharedPositionTime.isAfter(element.lastUpdateTime));
+        boolean hasNewerInfo = (element.lastUpdateTime == null && session.lastSharedPositionTime != null) || (session.lastSharedPositionTime != null && session.lastSharedPositionTime.isAfter(element.lastUpdateTime));
 
         if(hasNewerInfo && allowedToOverride) {
             session.recalculatePosition(Instant.now());
