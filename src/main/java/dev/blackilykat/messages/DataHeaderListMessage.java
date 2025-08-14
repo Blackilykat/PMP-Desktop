@@ -77,6 +77,7 @@ public class DataHeaderListMessage extends Message {
 
     @Override
     public void handle(ServerConnection connection) {
+        if(Main.songListWidget == null) return;
         TrackDataHeader[] oldHeaders = Main.songListWidget.dataHeaders.toArray(new TrackDataHeader[0]);
         Main.songListWidget.dataHeaders.clear();
 
