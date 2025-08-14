@@ -40,6 +40,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -147,22 +148,26 @@ public class SongListWidget extends Widget {
     }
 
     public void refreshHeaders() {
-        headerPanel.removeAll();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        for(TrackDataHeader dataHeader : dataHeaders) {
-            headerPanel.add(dataHeader.getContainedComponent());
-        }
+        SwingUtilities.invokeLater(() -> {
+            headerPanel.removeAll();
+            headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+            for(TrackDataHeader dataHeader : dataHeaders) {
+                headerPanel.add(dataHeader.getContainedComponent());
+            }
+        });
     }
 
     public void refreshTracks() {
-        scrollPaneContents.removeAll();
-        for(Track element : Library.INSTANCE.filteredTracks) {
-            scrollPaneContents.add(new TrackPanel(element, this));
-        }
-        scrollPaneContents.updateUI();
-        scrollPane.updateUI();
-        revalidate();
-        repaint();
+        SwingUtilities.invokeLater(() -> {
+            scrollPaneContents.removeAll();
+            for(Track element : Library.INSTANCE.filteredTracks) {
+                scrollPaneContents.add(new TrackPanel(element, this));
+            }
+            scrollPaneContents.updateUI();
+            scrollPane.updateUI();
+            revalidate();
+            repaint();
+        });
     }
 
     @Override
