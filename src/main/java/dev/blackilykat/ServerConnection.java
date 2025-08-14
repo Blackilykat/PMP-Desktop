@@ -181,7 +181,7 @@ public class ServerConnection {
     }
 
     public void disconnect(long reconnectInMilliseconds) {
-        LOGGER.warn("Disconnecting from server!");
+        LOGGER.warn("Disconnecting from server!", new Throwable());
         connected = false;
         loggedIn = false;
         if(clientId != -1) {
