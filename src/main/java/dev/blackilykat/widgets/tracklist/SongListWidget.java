@@ -305,14 +305,7 @@ public class SongListWidget extends Widget {
                     SongListWidget.this.refreshHeaders();
                     Main.songListWidget.refreshTracks();
 
-                    if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
-                        DataHeaderListMessage msg = new DataHeaderListMessage();
-                        for(TrackDataHeader header : SongListWidget.this.dataHeaders) {
-                            msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
-                        }
-                        ServerConnection.INSTANCE.send(msg);
-                        ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
-                    }
+                    DataHeaderListMessage.sendUpdate();
                 } catch(Exception e) {
                     LOGGER.error("Unknown error", e);
                 }

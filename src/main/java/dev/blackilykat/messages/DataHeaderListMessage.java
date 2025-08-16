@@ -101,4 +101,15 @@ public class DataHeaderListMessage extends Message {
         Main.songListWidget.refreshTracks();
         Main.songListWidget.repaint();
     }
+
+    public static void sendUpdate() {
+        if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
+            DataHeaderListMessage msg = new DataHeaderListMessage();
+            for(TrackDataHeader header : Main.songListWidget.dataHeaders) {
+                msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
+            }
+            ServerConnection.INSTANCE.send(msg);
+            ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
+        }
+    }
 }

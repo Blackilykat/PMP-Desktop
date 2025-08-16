@@ -82,14 +82,8 @@ public class TrackDataHeader {
                 songListWidget.refreshHeaders();
                 Main.songListWidget.refreshTracks();
 
-                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
-                    DataHeaderListMessage msg = new DataHeaderListMessage();
-                    for(TrackDataHeader header : songListWidget.dataHeaders) {
-                        msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
-                    }
-                    ServerConnection.INSTANCE.send(msg);
-                    ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
-                }
+
+                DataHeaderListMessage.sendUpdate();
 
             }
         });
@@ -121,14 +115,7 @@ public class TrackDataHeader {
                 songListWidget.refreshHeaders();
                 Main.songListWidget.refreshTracks();
 
-                if(ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
-                    DataHeaderListMessage msg = new DataHeaderListMessage();
-                    for(TrackDataHeader header : songListWidget.dataHeaders) {
-                        msg.headers.add(new Triple<>(header.id, header.metadataKey, header.name));
-                    }
-                    ServerConnection.INSTANCE.send(msg);
-                    ServerConnection.INSTANCE.send(new LatestHeaderIdMessage(TrackDataHeader.latestId));
-                }
+                DataHeaderListMessage.sendUpdate();
             }
         });
         popupMenu.add(editItem);
@@ -174,8 +161,7 @@ public class TrackDataHeader {
                         songListWidget.resizeLine = -1;
                         songListWidget.repaint();
                         songListWidget.refreshHeaders();
-                        songListWidget.revalidate();
-                        songListWidget.scrollPaneContents.revalidate();
+                        songListWidget.refreshTracks();
                         for(Component child : songListWidget.scrollPaneContents.getComponents()) {
                             if(!(child instanceof TrackPanel trackPanel)) continue;
                             for(Component grandchild : trackPanel.getComponents()) {
@@ -187,7 +173,7 @@ public class TrackDataHeader {
                         songListWidget.draggedHeader = null;
                         songListWidget.dragStart = -1;
                         songListWidget.repaint();
-                        // Everything happens in mouseDragged
+                        DataHeaderListMessage.sendUpdate();
                     } else {
                         songListWidget.draggedHeader = null;
                         songListWidget.dragStart = -1;
