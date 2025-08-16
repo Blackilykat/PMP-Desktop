@@ -23,11 +23,11 @@ import dev.blackilykat.ServerConnection;
 import dev.blackilykat.messages.DataHeaderListMessage;
 import dev.blackilykat.messages.LatestHeaderIdMessage;
 import dev.blackilykat.util.Triple;
+import jnr.ffi.annotations.In;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -42,6 +42,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.Instant;
+
+import static dev.blackilykat.Main.LOGGER;
 
 public class TrackDataHeader {
     public static int latestId = -1;
@@ -133,7 +136,12 @@ public class TrackDataHeader {
 
     public JLabel getComponent() {
         if(component != null) return component;
-        component = new JLabel(name);
+        component = new JLabel(name) {
+            @Override
+            public Color getForeground() {
+                return (songListWidget.dragging && songListWidget.draggedHeader == TrackDataHeader.this) ?  Color.GRAY : super.getForeground();
+            }
+        };
         component.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
         return component;
     }
@@ -159,7 +167,31 @@ public class TrackDataHeader {
                     if(!wasPressing) return;
                     wasPressing = false;
 
-                    if(songListWidget.draggedHeader == null) {
+                    if(songListWidget.resizedHeader != null) {
+                        songListWidget.resizedHeader.width = Math.max(e.getX() + containedComponent.getX() - songListWidget.resizedHeader.containedComponent.getX(), 20);
+
+                        songListWidget.resizedHeader = null;
+                        songListWidget.resizeLine = -1;
+                        songListWidget.repaint();
+                        songListWidget.refreshHeaders();
+                        songListWidget.revalidate();
+                        songListWidget.scrollPaneContents.revalidate();
+                        for(Component child : songListWidget.scrollPaneContents.getComponents()) {
+                            if(!(child instanceof TrackPanel trackPanel)) continue;
+                            for(Component grandchild : trackPanel.getComponents()) {
+                                grandchild.revalidate();
+                            }
+                        }
+                    } else if(songListWidget.dragging) {
+                        songListWidget.dragging = false;
+                        songListWidget.draggedHeader = null;
+                        songListWidget.dragStart = -1;
+                        songListWidget.repaint();
+                        // Everything happens in mouseDragged
+                    } else {
+                        songListWidget.draggedHeader = null;
+                        songListWidget.dragStart = -1;
+
                         if(songListWidget.audio.currentSession.getSortingHeader() != TrackDataHeader.this) {
                             songListWidget.audio.currentSession.setSortingHeader(null, TrackDataHeader.this);
                             songListWidget.audio.currentSession.setSortingOrder(null, Order.DESCENDING);
@@ -173,21 +205,6 @@ public class TrackDataHeader {
                         songListWidget.headerPanel.repaint();
 
                         Library.INSTANCE.reloadSorting();
-                        return;
-                    }
-                    songListWidget.draggedHeader.width = Math.max(e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
-
-                    songListWidget.draggedHeader = null;
-                    songListWidget.dragResizeLine = -1;
-                    songListWidget.repaint();
-                    songListWidget.refreshHeaders();
-                    songListWidget.revalidate();
-                    songListWidget.scrollPaneContents.revalidate();
-                    for(Component child : songListWidget.scrollPaneContents.getComponents()) {
-                        if(!(child instanceof TrackPanel trackPanel)) continue;
-                        for(Component grandchild : trackPanel.getComponents()) {
-                            grandchild.revalidate();
-                        }
                     }
                 } else if(e.isPopupTrigger()) {
                     popupMenu.show(containedComponent, e.getX(), e.getY());
@@ -198,19 +215,71 @@ public class TrackDataHeader {
             public void mouseDragged(MouseEvent e) {
                 // Using getButton() always returns 0 because during a drag none of the mouse buttons change state.
                 if((e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) {
-                    if(songListWidget.draggedHeader == null) return;
+                    if(songListWidget.resizedHeader != null) {
+                        int actualX = e.getX() + containedComponent.getX() - songListWidget.resizedHeader.containedComponent.getX();
+                        int oldPos = songListWidget.resizeLine;
+                        if(actualX < 20) {
+                            // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
+                            songListWidget.resizeLine = songListWidget.resizedHeader.containedComponent.getX() + 20;
+                        } else {
+                            songListWidget.resizeLine = containedComponent.getX() + e.getX();
+                        }
+                        // repainting everything uses an unreasonable amount of gpu
+                        songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
+                        songListWidget.repaint(songListWidget.resizeLine, 0, 1, songListWidget.getHeight());
+                    } else if(songListWidget.draggedHeader != null) {
+                        if(songListWidget.dragging) {
 
-                    int actualX = e.getX() + containedComponent.getX() - songListWidget.draggedHeader.containedComponent.getX();
-                    int oldPos = songListWidget.dragResizeLine;
-                    if(actualX < 20) {
-                        // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
-                        songListWidget.dragResizeLine = songListWidget.draggedHeader.containedComponent.getX() + 20;
-                    } else {
-                        songListWidget.dragResizeLine = containedComponent.getX() + e.getX();
+                            // Swing doesn't have time to react without a small cooldown
+                            if(Instant.now().toEpochMilli() - songListWidget.lastDragMove.toEpochMilli() < 20) return;
+
+                            int currentIndex = songListWidget.dataHeaders.indexOf(songListWidget.draggedHeader);
+                            boolean changes = false;
+                            int mousePos = e.getX();
+
+                            for(int i = 0; i < songListWidget.dataHeaders.indexOf(TrackDataHeader.this); i++) {
+                                TrackDataHeader target = songListWidget.dataHeaders.get(i);
+                                if(target == null) break;
+                                mousePos += target.width;
+                            }
+
+                            for(int i = 0, x = 0; i < songListWidget.dataHeaders.size(); i++) {
+                                TrackDataHeader target = songListWidget.dataHeaders.get(i);
+                                if(target == null) break;
+
+                                if(i < currentIndex) {
+                                    if(mousePos < x + target.width / 2) {
+                                        changes = true;
+                                        songListWidget.dataHeaders.remove(currentIndex);
+                                        songListWidget.dataHeaders.add(i, songListWidget.draggedHeader);
+                                        break;
+                                    }
+                                } else if(i > currentIndex) {
+                                    if(mousePos > x + target.width / 2) {
+                                        changes = true;
+                                        songListWidget.dataHeaders.remove(currentIndex);
+                                        songListWidget.dataHeaders.add(i, songListWidget.draggedHeader);
+                                        break;
+                                    }
+                                }
+
+                                x += target.width;
+                            }
+
+                            if(changes) {
+                                songListWidget.refreshHeadersNow();
+                                songListWidget.refreshTracksNow();
+                                songListWidget.repaint();
+                                songListWidget.headerPanel.repaint();
+                                songListWidget.lastDragMove = Instant.now();
+                            }
+                        } else {
+                            if(Math.abs(e.getX() - songListWidget.dragStart) >= 20) {
+                                songListWidget.dragging = true;
+                                component.repaint();
+                            }
+                        }
                     }
-                    // repainting everything uses an unreasonable amount of gpu
-                    songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
-                    songListWidget.repaint(songListWidget.dragResizeLine, 0, 1, songListWidget.getHeight());
                 }
             }
 
@@ -223,12 +292,15 @@ public class TrackDataHeader {
                     if(e.getX() < 20) {
                         int index = songListWidget.dataHeaders.indexOf(TrackDataHeader.this) - 1;
                         if(index >= 0) {
-                            songListWidget.draggedHeader = songListWidget.dataHeaders.get(index);
+                            songListWidget.resizedHeader = songListWidget.dataHeaders.get(index);
                         } else {
-                            songListWidget.draggedHeader = null;
+                            songListWidget.resizedHeader = null;
                         }
                     } else if(e.getX() > width - 20) {
+                        songListWidget.resizedHeader = TrackDataHeader.this;
+                    } else {
                         songListWidget.draggedHeader = TrackDataHeader.this;
+                        songListWidget.dragStart = e.getX();
                     }
                 } else if(e.isPopupTrigger()) {
                     popupMenu.show(containedComponent, e.getX(), e.getY());
@@ -242,7 +314,6 @@ public class TrackDataHeader {
         return containedComponent;
     }
 
-    //TODO this is a mess, please clean it up with #8
     public void setAlignment(TrackDataEntry.Alignment alignment) {
         this.alignment = alignment;
         containedComponent.removeAll();

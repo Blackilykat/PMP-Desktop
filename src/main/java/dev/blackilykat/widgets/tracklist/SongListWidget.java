@@ -26,7 +26,6 @@ import dev.blackilykat.Storage;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.DataHeaderListMessage;
 import dev.blackilykat.messages.LatestHeaderIdMessage;
-import dev.blackilykat.util.Pair;
 import dev.blackilykat.util.Triple;
 import dev.blackilykat.widgets.ScrollablePanel;
 import dev.blackilykat.widgets.Widget;
@@ -52,6 +51,7 @@ import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -68,9 +68,18 @@ public class SongListWidget extends Widget {
     public static JPopupMenu trackListPopupMenu = new JPopupMenu();
     public JPopupMenu headerPopupMenu = new JPopupMenu();
     public List<TrackDataHeader> dataHeaders = new ArrayList<>();
+
     // -1: don't show, other: x coordinate of the line that will display while resizing
-    public int dragResizeLine = -1;
+    public int resizeLine = -1;
+    public TrackDataHeader resizedHeader = null;
+
+    // If dragging a header, the x coordinate where the mouse was first pressed. Used to tell whether it's a proper drag or just a click
+    public int dragStart = -1;
+    public boolean dragging = false;
     public TrackDataHeader draggedHeader = null;
+    // Needed for timeouts when dragging. Without timeouts event get spammed before swing can react and it breaks
+    public Instant lastDragMove = Instant.EPOCH;
+
     private static ExecutorService addTrackExecutor = Executors.newSingleThreadExecutor();
 
     static {
@@ -147,26 +156,46 @@ public class SongListWidget extends Widget {
         headerPopupMenu.add(getAddHeaderPopupItem());
     }
 
+    /**
+     * Refreshes headers in this thread.
+     * This interacts with swing.
+     * Only call if you're sure you're on the swing thread.
+     * Use {@link #refreshHeaders()} if not
+     */
+    public void refreshHeadersNow() {
+        headerPanel.removeAll();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+        for(TrackDataHeader dataHeader : dataHeaders) {
+            headerPanel.add(dataHeader.getContainedComponent());
+        }
+    }
+
     public void refreshHeaders() {
         SwingUtilities.invokeLater(() -> {
-            headerPanel.removeAll();
-            headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-            for(TrackDataHeader dataHeader : dataHeaders) {
-                headerPanel.add(dataHeader.getContainedComponent());
-            }
+            refreshHeadersNow();
         });
+    }
+
+    /**
+     * Refreshes tracks in this thread.
+     * This interacts with swing.
+     * Only call if you're sure you're on the swing thread.
+     * Use {@link #refreshHeaders()} if not
+     */
+    public void refreshTracksNow() {
+        scrollPaneContents.removeAll();
+        for(Track element : Library.INSTANCE.filteredTracks) {
+            scrollPaneContents.add(new TrackPanel(element, this));
+        }
+        scrollPaneContents.updateUI();
+        scrollPane.updateUI();
+        revalidate();
+        repaint();
     }
 
     public void refreshTracks() {
         SwingUtilities.invokeLater(() -> {
-            scrollPaneContents.removeAll();
-            for(Track element : Library.INSTANCE.filteredTracks) {
-                scrollPaneContents.add(new TrackPanel(element, this));
-            }
-            scrollPaneContents.updateUI();
-            scrollPane.updateUI();
-            revalidate();
-            repaint();
+            refreshTracksNow();
         });
     }
 
@@ -296,9 +325,9 @@ public class SongListWidget extends Widget {
     public void paint(Graphics g) {
         super.paint(g);
 
-        if(dragResizeLine > -1) {
+        if(resizeLine > -1) {
             g.setColor(Color.BLACK);
-            g.fillRect(dragResizeLine, 0, 1, this.getHeight() - 2);
+            g.fillRect(resizeLine, 0, 1, this.getHeight() - 2);
         }
     }
 }

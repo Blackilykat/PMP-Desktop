@@ -51,11 +51,11 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
     @Override
     public void mouseReleased(MouseEvent e) {
         if(e.getButton() == MouseEvent.BUTTON1) {
-            if(songListWidget.draggedHeader == null) return;
-            songListWidget.draggedHeader.width = Math.max(e.getX() - songListWidget.draggedHeader.containedComponent.getX(), 20);
+            if(songListWidget.resizedHeader == null) return;
+            songListWidget.resizedHeader.width = Math.max(e.getX() - songListWidget.resizedHeader.containedComponent.getX(), 20);
 
-            songListWidget.draggedHeader = null;
-            songListWidget.dragResizeLine = -1;
+            songListWidget.resizedHeader = null;
+            songListWidget.resizeLine = -1;
             songListWidget.repaint();
             songListWidget.refreshHeaders();
             songListWidget.revalidate();
@@ -74,19 +74,19 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
     public void mouseDragged(MouseEvent e) {
         // Using getButton() always returns 0 because during a drag none of the mouse buttons change state.
         if((e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) {
-            if(songListWidget.draggedHeader == null) return;
+            if(songListWidget.resizedHeader == null) return;
 
-            int actualX = e.getX() - songListWidget.draggedHeader.containedComponent.getX();
-            int oldPos = songListWidget.dragResizeLine;
+            int actualX = e.getX() - songListWidget.resizedHeader.containedComponent.getX();
+            int oldPos = songListWidget.resizeLine;
             if(actualX < 20) {
                 // can safely assume other headers' containedComponents are non-null since the user is dragging on this one
-                songListWidget.dragResizeLine = songListWidget.draggedHeader.containedComponent.getX() + 20;
+                songListWidget.resizeLine = songListWidget.resizedHeader.containedComponent.getX() + 20;
             } else {
-                songListWidget.dragResizeLine = e.getX();
+                songListWidget.resizeLine = e.getX();
             }
             // repainting everything uses an unreasonable amount of gpu
             songListWidget.repaint(oldPos, 0, 1, songListWidget.getHeight());
-            songListWidget.repaint(songListWidget.dragResizeLine, 0, 1, songListWidget.getHeight());
+            songListWidget.repaint(songListWidget.resizeLine, 0, 1, songListWidget.getHeight());
         }
     }
 
@@ -99,7 +99,7 @@ public class TrackDataHeaderContainer extends JPanel implements MouseListener, M
             }
 
             if(e.getX() < totalWidth + 20) {
-                songListWidget.draggedHeader = songListWidget.dataHeaders.getLast();
+                songListWidget.resizedHeader = songListWidget.dataHeaders.getLast();
             }
         }
     }
