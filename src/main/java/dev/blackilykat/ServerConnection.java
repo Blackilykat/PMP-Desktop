@@ -251,7 +251,7 @@ public class ServerConnection {
         } catch(URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        Library.INSTANCE.reloadAll();
+        Library.INSTANCE.reloadAll(null);
     }
 
     /**

@@ -83,53 +83,53 @@ public class PlaybackSession {
         return filters.toArray(new LibraryFilter[0]);
     }
 
-    public void addLibraryFilter(LibraryFilter filter) {
+    public void addLibraryFilter(PlaybackSessionUpdateMessage buffer, LibraryFilter filter) {
         filters.add(filter);
         List<Pair<String, List<Pair<String, LibraryFilterOption.State>>>> thing = PlaybackSessionUpdateMessage.getFiltersFromSession(this);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, thing, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, thing, null, null, null);
     }
 
-    public void removeLibraryFilter(LibraryFilter filter) {
+    public void removeLibraryFilter(PlaybackSessionUpdateMessage buffer, LibraryFilter filter) {
         filters.remove(filter);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
-    public void setLibraryFilters(Collection<LibraryFilter> newFilters) {
+    public void setLibraryFilters(PlaybackSessionUpdateMessage buffer, Collection<LibraryFilter> newFilters) {
         filters.clear();
         filters.addAll(newFilters);
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
     public int getPosition() {
         return position;
     }
 
-    public void setPosition(int position, boolean isJump) {
+    public void setPosition(PlaybackSessionUpdateMessage buffer, int position, boolean isJump) {
         this.position = position;
         if(isJump) {
             lastSharedPosition = position;
             lastSharedPositionTime = Instant.now();
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, position, null, null, null, null);
+            PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, position, null, null, null, null);
             callUpdateListeners();
         }
     }
 
-    public void recalculatePosition(Instant atTime) {
+    public void recalculatePosition(PlaybackSessionUpdateMessage buffer, Instant atTime) {
         int offset = 0;
         if(playing && lastSharedPositionTime != null) {
             offset = (int) (((atTime.toEpochMilli() - lastSharedPositionTime.toEpochMilli()) * 44100 * 4) / 1000);
         }
         offset -= offset % 4;
-        setPosition(lastSharedPosition + offset, true);
+        setPosition(buffer, lastSharedPosition + offset, true);
     }
 
     public boolean getPlaying() {
         return playing;
     }
 
-    public void setPlaying(boolean playing) {
+    public void setPlaying(PlaybackSessionUpdateMessage buffer, boolean playing) {
         this.playing = playing;
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, playing, null, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, playing, null, null, null, null, null);
         if(Audio.INSTANCE.currentSession == this) {
             PlayBarWidget.setPlaying(playing);
         }
@@ -140,10 +140,10 @@ public class PlaybackSession {
         return ownerId;
     }
 
-    public void setOwnerId(int ownerId) {
+    public void setOwnerId(PlaybackSessionUpdateMessage buffer, int ownerId) {
         this.ownerId = ownerId;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, ownerId, null, null);
+            PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, null, ownerId, null, null);
         }
         callUpdateListeners();
     }
@@ -182,10 +182,10 @@ public class PlaybackSession {
         return sortingHeader;
     }
 
-    public void setSortingHeader(TrackDataHeader sortingHeader) {
+    public void setSortingHeader(PlaybackSessionUpdateMessage buffer, TrackDataHeader sortingHeader) {
         this.sortingHeader = sortingHeader;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, sortingHeader.id, null);
+            PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, null, null, sortingHeader.id, null);
         }
     }
 
@@ -193,10 +193,10 @@ public class PlaybackSession {
         return sortingOrder;
     }
 
-    public void setSortingOrder(Order sortingOrder) {
+    public void setSortingOrder(PlaybackSessionUpdateMessage buffer, Order sortingOrder) {
         this.sortingOrder = sortingOrder;
         if(acknowledgedByServer) {
-            PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, null, null, null, sortingOrder);
+            PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, null, null, null, sortingOrder);
         }
     }
 
@@ -267,14 +267,14 @@ public class PlaybackSession {
         previousTracks.clear();
     }
 
-    public void setShuffle(ShuffleOption option) {
+    public void setShuffle(PlaybackSessionUpdateMessage buffer, ShuffleOption option) {
         shuffle = option;
         PlayBarWidget.shuffleButton.setIcon(switch(shuffle) {
             case ON -> Icons.svgIcon(Icons.SHUFFLE_ON, 16, 16);
             case OFF -> Icons.svgIcon(Icons.SHUFFLE_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, option, null, null, null, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, option, null, null, null, null, null, null, null);
         callUpdateListeners();
     }
 
@@ -282,7 +282,7 @@ public class PlaybackSession {
         return shuffle;
     }
 
-    public void setRepeat(RepeatOption option) {
+    public void setRepeat(PlaybackSessionUpdateMessage buffer, RepeatOption option) {
         repeat = option;
         PlayBarWidget.repeatButton.setIcon(switch(repeat) {
             case ALL -> Icons.svgIcon(Icons.REPEAT_ALL, 16, 16);
@@ -290,7 +290,7 @@ public class PlaybackSession {
             case OFF -> Icons.svgIcon(Icons.REPEAT_OFF, 16, 16);
         });
         reloadNext();
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, option, null, null, null, null, null, null);
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, option, null, null, null, null, null, null);
         callUpdateListeners();
     }
 
@@ -320,8 +320,8 @@ public class PlaybackSession {
         return null;
     }
 
-    public void sendFilterUpdate() {
-        PlaybackSessionUpdateMessage.doUpdate(id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
+    public void sendFilterUpdate(PlaybackSessionUpdateMessage buffer) {
+        PlaybackSessionUpdateMessage.doUpdate(buffer, id, null, null, null, null, null, PlaybackSessionUpdateMessage.getFiltersFromSession(this), null, null, null);
     }
 
     /**

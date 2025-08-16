@@ -21,6 +21,7 @@ import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.parsers.FlacFileParser;
 import dev.blackilykat.util.Pair;
 import dev.blackilykat.widgets.playbar.PlayBarWidget;
+import jnr.ffi.annotations.In;
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.mpris.MPRISMP2None;
@@ -44,6 +45,8 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
+
+import static dev.blackilykat.messages.PlaybackSessionUpdateMessage.VOID_BUFFER;
 
 import static dev.blackilykat.Main.LOGGER;
 
@@ -109,24 +112,20 @@ public class Audio {
         mpris = maybeCreateMprisInstance();
     }
 
-    public void startPlaying(Track track, boolean reset) {
+    public void startPlaying(PlaybackSessionUpdateMessage updateBuffer, Track track, boolean reset) {
         if(!canPlay) return;
 
-        // reset is true when the action was caused by this client (so send it to the server) and false when it was caused by the server
-        if(reset) {
-            PlaybackSessionUpdateMessage.doUpdate(currentSession.id, track.getFile().getName(), null, null, true, 0, null, null, null, null);
-        }
-        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(currentSession.id, null, null,
-                null, null, null, null, null, null, null, Instant.now());
         currentSession.setCurrentTrack(track);
         if(reset) {
-            currentSession.setPosition(0, true);
-            setPlaying(true);
+            PlaybackSessionUpdateMessage buffer = new PlaybackSessionUpdateMessage(currentSession.id);
+            currentSession.setPosition(buffer, 0, true);
+            setPlaying(buffer, true);
+            buffer.track = track.getFile().getName();
+            buffer.time = Instant.now();
             if(ServerConnection.INSTANCE != null) {
-                ServerConnection.INSTANCE.send(PlaybackSessionUpdateMessage.messageBuffer);
+                ServerConnection.INSTANCE.send(buffer);
             }
         }
-        PlaybackSessionUpdateMessage.messageBuffer = null;
 
         if(preLoadedTrack != track) {
             if(latestSongLoadingFuture != null) {
@@ -183,9 +182,9 @@ public class Audio {
         });
     }
 
-    public void setPlaying(boolean playing) {
+    public void setPlaying(PlaybackSessionUpdateMessage updateBuffer, boolean playing) {
         if (!canPlay) return;
-        this.currentSession.setPlaying(playing);
+        this.currentSession.setPlaying(updateBuffer, playing);
         this.currentSession.lastSharedPosition = this.currentSession.getPosition();
         this.currentSession.lastSharedPositionTime = Instant.now();
         PlayBarWidget.setPlaying(playing);
@@ -194,26 +193,23 @@ public class Audio {
     public void setCurrentSession(PlaybackSession session) {
         if(ServerConnection.INSTANCE != null) {
             if(this.currentSession.getOwnerId() == ServerConnection.INSTANCE.clientId) {
-                this.currentSession.setOwnerId(-1);
+                this.currentSession.setOwnerId(null, -1);
             }
         }
 
-        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(0, null, null,
-                null, null, null, null, null, null, null, Instant.now());
         // avoid changing stuff null WHILE it's processing
         synchronized(this.audioLock) {
             if(ServerConnection.INSTANCE != null && session.getOwnerId() != ServerConnection.INSTANCE.clientId) {
-                session.recalculatePosition(Instant.now());
+                session.recalculatePosition(VOID_BUFFER, Instant.now());
             }
             this.currentSession = session;
-            this.startPlaying(session.getCurrentTrack(), false);
-            this.setPlaying(session.getPlaying());
+            this.startPlaying(VOID_BUFFER, session.getCurrentTrack(), false);
+            this.setPlaying(VOID_BUFFER, session.getPlaying());
 
             // update icons
-            session.setShuffle(session.getShuffle());
-            session.setRepeat(session.getRepeat());
+            session.setShuffle(VOID_BUFFER, session.getShuffle());
+            session.setRepeat(VOID_BUFFER, session.getRepeat());
         }
-        PlaybackSessionUpdateMessage.messageBuffer = null;
         Main.playBarWidget.repaint();
 
         Main.libraryFiltersWidget.reloadPanels();
@@ -233,20 +229,18 @@ public class Audio {
         assert toSelect != null;
         this.setCurrentSession(toSelect);
         if(takeOwnership && toSelect.getOwnerId() == -1 && ServerConnection.INSTANCE != null && ServerConnection.INSTANCE.loggedIn) {
-            toSelect.setOwnerId(ServerConnection.INSTANCE.clientId);
+            toSelect.setOwnerId(null, ServerConnection.INSTANCE.clientId);
         }
 
-        PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
-        library.reloadFilters();
+        library.reloadFilters(VOID_BUFFER);
         library.reloadSorting();
-        PlaybackSessionUpdateMessage.messageBuffer = null;
     }
 
     public void nextTrack() {
         if(currentSession == null) return;
-        currentSession.setPlaying(false);
+        currentSession.setPlaying(VOID_BUFFER, false);
         Track next = currentSession.nextTrack();
-        if(next != null) startPlaying(next, true);
+        if(next != null) startPlaying(null, next, true);
     }
 
     public void preLoadNextTrack() {
@@ -257,9 +251,9 @@ public class Audio {
 
     public void previousTrack() {
         if(currentSession == null) return;
-        currentSession.setPlaying(false);
+        currentSession.setPlaying(null, false);
         Track previous = currentSession.previousTrack();
-        if(previous != null) startPlaying(previous, true);
+        if(previous != null) startPlaying(null, previous, true);
     }
 
     public static class AudioPlayingThread extends Thread {
@@ -283,7 +277,7 @@ public class Audio {
                     }
                     Track currentTrack = audio.currentSession.getCurrentTrack();
                     if(currentTrack == null) {
-                        audio.setPlaying(false);
+                        audio.setPlaying(null, false);
                         continue;
                     }
 
@@ -332,7 +326,7 @@ public class Audio {
                                 buffer[i + 3] = currentTrack.pcmData[position + 2];
                                 buffer[i + 2] = currentTrack.pcmData[position + 3];
                             }
-                            audio.currentSession.setPosition(position + 4, false);
+                            audio.currentSession.setPosition(null, position + 4, false);
                             wrote += 4;
                         }
                     }
@@ -382,19 +376,19 @@ public class Audio {
                                 if(currentSession == null) {
                                     throw new IllegalStateException();
                                 }
-                                currentSession.setPlaying(!currentSession.getPlaying());
+                                currentSession.setPlaying(null, !currentSession.getPlaying());
                             })
                             .setOnPlay(value -> {
                                 if(currentSession == null) {
                                     throw new IllegalStateException();
                                 }
-                                currentSession.setPlaying(true);
+                                currentSession.setPlaying(null, true);
                             })
                             .setOnPause(value -> {
                                 if(currentSession == null) {
                                     throw new IllegalStateException();
                                 }
-                                currentSession.setPlaying(false);
+                                currentSession.setPlaying(null, false);
                             })
                             .setOnNext(value -> {
                                 if(currentSession == null) {

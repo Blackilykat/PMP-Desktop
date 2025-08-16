@@ -122,10 +122,10 @@ public class LibraryFiltersWidget extends Widget {
                 LibraryFilter filter = new LibraryFilter(Library.INSTANCE, audio.currentSession, answer);
                 filter.reloadOptions();
                 if(Audio.INSTANCE != null && Audio.INSTANCE.currentSession != null) {
-                    Audio.INSTANCE.currentSession.addLibraryFilter(filter);
+                    Audio.INSTANCE.currentSession.addLibraryFilter(null, filter);
                 }
                 LibraryFilterPanel panel = new LibraryFilterPanel(filter, LibraryFiltersWidget.this);
-                panel.filter.library.reloadFilters();
+                panel.filter.library.reloadFilters(null);
                 reloadPanels();
                 reloadElements();
             }

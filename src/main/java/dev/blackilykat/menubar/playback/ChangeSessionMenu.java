@@ -70,7 +70,7 @@ public class ChangeSessionMenu extends JMenu {
             public void actionPerformed(ActionEvent e) {
                 LOGGER.info("Taking ownership of session {}", session);
                 audio.setCurrentSession(session);
-                session.setOwnerId(ServerConnection.INSTANCE.clientId);
+                session.setOwnerId(null, ServerConnection.INSTANCE.clientId);
             }
         });
 

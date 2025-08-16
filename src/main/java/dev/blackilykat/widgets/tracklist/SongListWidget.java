@@ -220,7 +220,7 @@ public class SongListWidget extends Widget {
                                 continue;
                             }
 
-                            Library.INSTANCE.reloadAll();
+                            Library.INSTANCE.reloadAll(null);
 
                             Storage.pushPendingLibraryAction(new LibraryAction(newFile.getName(), LibraryAction.Type.ADD));
                         }

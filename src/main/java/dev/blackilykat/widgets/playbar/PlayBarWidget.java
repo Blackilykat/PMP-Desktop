@@ -114,16 +114,16 @@ public class PlayBarWidget extends Widget {
 
     static {
         playPauseButton.addActionListener(e -> {
-            Audio.INSTANCE.setPlaying(!getPlaying());
+            Audio.INSTANCE.setPlaying(null, !getPlaying());
         });
         shuffleButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.setShuffle(switch(Audio.INSTANCE.currentSession.getShuffle()) {
+            Audio.INSTANCE.currentSession.setShuffle(null, switch(Audio.INSTANCE.currentSession.getShuffle()) {
                 case OFF -> PlaybackSession.ShuffleOption.ON;
                 case ON -> PlaybackSession.ShuffleOption.OFF;
             });
         });
         repeatButton.addActionListener(e -> {
-            Audio.INSTANCE.currentSession.setRepeat(switch(Audio.INSTANCE.currentSession.getRepeat()) {
+            Audio.INSTANCE.currentSession.setRepeat(null, switch(Audio.INSTANCE.currentSession.getRepeat()) {
                 case OFF -> PlaybackSession.RepeatOption.ALL;
                 case ALL -> PlaybackSession.RepeatOption.TRACK;
                 case TRACK -> PlaybackSession.RepeatOption.OFF;

@@ -28,7 +28,6 @@ import dev.blackilykat.ServerConnection;
 import dev.blackilykat.Track;
 import dev.blackilykat.messages.exceptions.MessageException;
 import dev.blackilykat.util.Pair;
-import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.tracklist.Order;
 import dev.blackilykat.widgets.tracklist.TrackDataHeader;
@@ -37,6 +36,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static dev.blackilykat.messages.PlaybackSessionUpdateMessage.VOID_BUFFER;
 
 /**
  * Contains a list of all sessions that currently exist. When the server sends this, clients must ensure their session
@@ -104,7 +105,7 @@ public class PlaybackSessionListMessage extends Message {
             }
         } else {
             connection.send(new PlaybackSessionCreateMessage(0, null));
-            Audio.INSTANCE.currentSession.setOwnerId(connection.clientId);
+            Audio.INSTANCE.currentSession.setOwnerId(null, connection.clientId);
         }
         Main.libraryFiltersWidget.reloadPanels();
         Main.libraryFiltersWidget.reloadElements();
@@ -116,9 +117,11 @@ public class PlaybackSessionListMessage extends Message {
         boolean hasNewerInfo = (element.lastUpdateTime == null && session.lastSharedPositionTime != null) || (session.lastSharedPositionTime != null && session.lastSharedPositionTime.isAfter(element.lastUpdateTime));
 
         if(hasNewerInfo && allowedToOverride) {
-            session.recalculatePosition(Instant.now());
-            session.setOwnerId(ServerConnection.INSTANCE.clientId);
-            PlaybackSessionUpdateMessage.doUpdate(session.id,
+            PlaybackSessionUpdateMessage buffer = new PlaybackSessionUpdateMessage(session.id);
+            session.recalculatePosition(buffer, Instant.now());
+            session.setOwnerId(buffer, ServerConnection.INSTANCE.clientId);
+            PlaybackSessionUpdateMessage.doUpdate(buffer,
+                    session.id,
                     session.getCurrentTrack() != null ? session.getCurrentTrack().getFile().getName() : null,
                     session.getShuffle(),
                     session.getRepeat(),
@@ -128,6 +131,8 @@ public class PlaybackSessionListMessage extends Message {
                     ServerConnection.INSTANCE.clientId,
                     session.getSortingHeader() != null ? session.getSortingHeader().id : null,
                     session.getSortingOrder());
+
+            ServerConnection.INSTANCE.send(buffer);
         } else {
             Track track = null;
             for(Track t : Library.INSTANCE.tracks) {
@@ -136,25 +141,23 @@ public class PlaybackSessionListMessage extends Message {
                     break;
                 }
             }
-            PlaybackSessionUpdateMessage.messageBuffer = new PlaybackSessionUpdateMessage(-1, null, null, null, null, null, null, null, null, null, null);
             if(Audio.INSTANCE.currentSession == session) {
-                Audio.INSTANCE.startPlaying(track, false);
+                Audio.INSTANCE.startPlaying(VOID_BUFFER, track, false);
             } else {
                 session.setCurrentTrack(track);
             }
-            session.setShuffle(element.shuffle);
-            session.setRepeat(element.repeat);
-            session.setPlaying(element.playing);
-            session.setOwnerId(element.owner);
+            session.setShuffle(VOID_BUFFER, element.shuffle);
+            session.setRepeat(VOID_BUFFER, element.repeat);
+            session.setPlaying(VOID_BUFFER, element.playing);
+            session.setOwnerId(VOID_BUFFER, element.owner);
             session.lastSharedPosition = element.lastPositionUpdate;
             session.lastSharedPositionTime = element.lastUpdateTime;
-            session.recalculatePosition(Instant.now());
-            session.setLibraryFilters(PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
+            session.recalculatePosition(VOID_BUFFER, Instant.now());
+            session.setLibraryFilters(VOID_BUFFER, PlaybackSessionUpdateMessage.asFilterObject(element.filters, session));
             if(!Main.songListWidget.dataHeaders.isEmpty()) {
-                session.setSortingHeader(TrackDataHeader.getById(element.sortingHeader));
+                session.setSortingHeader(VOID_BUFFER, TrackDataHeader.getById(element.sortingHeader));
             }
-            session.setSortingOrder(element.sortingOrder);
-            PlaybackSessionUpdateMessage.messageBuffer = null;
+            session.setSortingOrder(VOID_BUFFER, element.sortingOrder);
         }
         session.acknowledgedByServer = true;
     }

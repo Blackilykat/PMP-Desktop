@@ -17,6 +17,7 @@
 
 package dev.blackilykat;
 
+import dev.blackilykat.messages.PlaybackSessionUpdateMessage;
 import dev.blackilykat.widgets.filters.LibraryFilter;
 import dev.blackilykat.widgets.filters.LibraryFilterOption;
 import dev.blackilykat.widgets.tracklist.Order;
@@ -44,7 +45,7 @@ public class Library {
     public boolean loaded = false;
 
     public Library() {
-        this.reloadAll();
+        this.reloadAll(null);
     }
 
     public int findIndex(File file) {
@@ -96,16 +97,16 @@ public class Library {
         loaded = true;
     }
 
-    public synchronized void reloadAll() {
+    public synchronized void reloadAll(PlaybackSessionUpdateMessage updateBuffer) {
         reloadTracks();
-        reloadFilters();
+        reloadFilters(updateBuffer);
         reloadSorting();
         if(Main.songListWidget != null) {
             Main.songListWidget.refreshTracks();
         }
     }
 
-    public void reloadFilters() {
+    public void reloadFilters(PlaybackSessionUpdateMessage updateBuffer) {
         filteredTracks.clear();
         filteredTracks.addAll(tracks);
         if(audio == null || Main.libraryFiltersWidget == null) return;
@@ -128,7 +129,7 @@ public class Library {
                 filter.getOption(LibraryFilter.OPTION_EVERYTHING).setState(LibraryFilterOption.State.POSITIVE, true);
             }
 
-            filter.session.sendFilterUpdate();
+            filter.session.sendFilterUpdate(updateBuffer);
 
             filter.reloadMatching();
             filteredTracks.clear();

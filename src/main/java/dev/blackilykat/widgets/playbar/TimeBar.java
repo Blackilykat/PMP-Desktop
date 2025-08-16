@@ -47,7 +47,7 @@ public class TimeBar extends JSlider {
 
     @Override
     public void setValue(int n) {
-        Audio.INSTANCE.currentSession.setPosition(n - (n % Audio.INSTANCE.audioFormat.getFrameSize()), true);
+        Audio.INSTANCE.currentSession.setPosition(null, n - (n % Audio.INSTANCE.audioFormat.getFrameSize()), true);
     }
 
     @Override
@@ -203,7 +203,7 @@ public class TimeBar extends JSlider {
                 percent = Math.min(1, Math.max(0, percent));
                 int songPosition = ((int) (percent * currentTrack.pcmData.length));
                 songPosition -= songPosition % Audio.INSTANCE.audioFormat.getFrameSize();
-                Audio.INSTANCE.currentSession.setPosition(songPosition, true);
+                Audio.INSTANCE.currentSession.setPosition(null, songPosition, true);
                 ((TimeBar)slider).update();
             }
 

@@ -82,11 +82,11 @@ public class LibraryFilterPanel extends JPanel {
                 if(widget != null) {
                     assert filter.library.audio != null;
                     assert filter.library.audio.currentSession != null;
-                    filter.library.audio.currentSession.removeLibraryFilter(filter);
+                    filter.library.audio.currentSession.removeLibraryFilter(null, filter);
 
                     widget.reloadPanels();
                     widget.reloadElements();
-                    filter.library.reloadFilters();
+                    filter.library.reloadFilters(null);
                 } else {
                     LOGGER.warn("Attempted to delete widgetless filter! Ignoring");
                 }
@@ -220,9 +220,9 @@ public class LibraryFilterPanel extends JPanel {
 
                     repaint();
 
-                    option.filter.session.sendFilterUpdate();
+                    option.filter.session.sendFilterUpdate(null);
                     Main.songListWidget.refreshTracks();
-                    option.filter.library.reloadFilters();
+                    option.filter.library.reloadFilters(null);
                     Main.libraryFiltersWidget.reloadPanels();
                     Main.libraryFiltersWidget.reloadElements();
                     option.filter.library.reloadSorting();

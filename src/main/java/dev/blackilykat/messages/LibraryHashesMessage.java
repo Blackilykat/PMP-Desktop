@@ -179,7 +179,7 @@ public class LibraryHashesMessage extends Message {
             }
         }
         if(changes) {
-            Library.INSTANCE.reloadAll();
+            Library.INSTANCE.reloadAll(null);
         }
 
         LibraryActionSenderThread.setAllowed(true);

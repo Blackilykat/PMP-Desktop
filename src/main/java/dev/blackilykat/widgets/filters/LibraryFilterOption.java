@@ -35,7 +35,7 @@ public class LibraryFilterOption implements Comparable<LibraryFilterOption> {
     public void setState(State state, boolean sendUpdate) {
         this.state = state;
         if(sendUpdate) {
-            filter.session.sendFilterUpdate();
+            filter.session.sendFilterUpdate(null);
         }
     }
 

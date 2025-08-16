@@ -161,11 +161,11 @@ public class TrackDataHeader {
 
                     if(songListWidget.draggedHeader == null) {
                         if(songListWidget.audio.currentSession.getSortingHeader() != TrackDataHeader.this) {
-                            songListWidget.audio.currentSession.setSortingHeader(TrackDataHeader.this);
-                            songListWidget.audio.currentSession.setSortingOrder(Order.DESCENDING);
+                            songListWidget.audio.currentSession.setSortingHeader(null, TrackDataHeader.this);
+                            songListWidget.audio.currentSession.setSortingOrder(null, Order.DESCENDING);
                         } else {
                             // a lil confusing to read but it just flips it
-                            songListWidget.audio.currentSession.setSortingOrder(songListWidget.audio.currentSession.getSortingOrder() == Order.DESCENDING ? Order.ASCENDING : Order.DESCENDING);
+                            songListWidget.audio.currentSession.setSortingOrder(null, songListWidget.audio.currentSession.getSortingOrder() == Order.DESCENDING ? Order.ASCENDING : Order.DESCENDING);
                         }
                         lastPressedX = -1;
                         // repainting the headers alone clears the lines between them, so you have to redraw the whole thing

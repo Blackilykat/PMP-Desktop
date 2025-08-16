@@ -72,7 +72,7 @@ public class TrackPanel extends JPanel {
                 track.getFile().delete();
                 Storage.pushPendingLibraryAction(new LibraryAction(track.getFile().getName(), LibraryAction.Type.REMOVE));
                 LOGGER.info("Deleted track {}", track.getFile().getName());
-                Library.INSTANCE.reloadAll();
+                Library.INSTANCE.reloadAll(null);
             }
         });
         this.popup.add(deleteItem);
@@ -105,7 +105,7 @@ public class TrackPanel extends JPanel {
                 if(e.getButton() != MouseEvent.BUTTON1) return;
                 Instant now = Instant.now();
                 if(lastClick != null && now.toEpochMilli() - lastClick.toEpochMilli() < 500) {
-                    Audio.INSTANCE.startPlaying(track, true);
+                    Audio.INSTANCE.startPlaying(null, track, true);
                     lastClick = null;
                 } else {
                     lastClick = now;

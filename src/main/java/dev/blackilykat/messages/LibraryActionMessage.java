@@ -121,7 +121,7 @@ public class LibraryActionMessage extends Message {
                 break;
         }
         Storage.setCurrentActionID(actionId+1);
-        Library.INSTANCE.reloadAll();
+        Library.INSTANCE.reloadAll(null);
 
         if(actionId == WelcomeMessage.waitingForMissedActions) {
 
