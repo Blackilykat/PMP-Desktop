@@ -433,8 +433,7 @@ public class Audio {
                                 .setTrackID(new DBusPath("/PMPDesktop/" + track.getFile().getName().replace(".flac", "").replaceAll("[^A-Za-z0-9_]", "")))
                                 .setLength((int) (seconds * 1_000_000))
                                 .setArtURL(track.getFile().toURI())
-                                // I am genuinely sorry for this. I blame java. fuck you java.
-                                .setXesamMetadata((Map<String, List<?>>) (Map<?, ?>) metadataMap)
+                                .setXesamMetadata(metadataMap)
                                 .build());
                     }
 
