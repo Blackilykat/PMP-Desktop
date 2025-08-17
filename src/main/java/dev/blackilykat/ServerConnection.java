@@ -27,6 +27,7 @@ import dev.blackilykat.messages.exceptions.MessageMissingContentsException;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.swing.JLabel;
@@ -54,7 +55,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -78,6 +81,8 @@ public class ServerConnection {
     private static List<ConnectionListener> onDisconnectListeners = new ArrayList<>();
     public static int oldClientId = -1;
 
+    private static final Map<String, Boolean> supportsInsecureHttpCache = new HashMap<>();
+
     public final String ip;
     public final int mainPort;
     public final int filePort;
@@ -94,6 +99,7 @@ public class ServerConnection {
     public InputReadingThread inputReadingThread = new InputReadingThread();
     public Key serverPublicKey = null;
     public SSLContext sslContext = null;
+    public SSLSocketFactory sslSocketFactory = null;
 
     public ServerConnection(String ip, int mainPort, int filePort) throws IOException {
         LOGGER.info("Connecting to server on {}:{} and {}:{}...", ip, mainPort, ip, filePort);
@@ -234,9 +240,11 @@ public class ServerConnection {
             if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
+
             URL url = new URI("https://" + ip + ":" + filePort + "/" + URLEncoder.encode(name, StandardCharsets.UTF_8)).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-            connection.setSSLSocketFactory(sslContext.getSocketFactory());
+            if(sslSocketFactory == null) sslSocketFactory = sslContext.getSocketFactory();
+            connection.setSSLSocketFactory(sslSocketFactory);
             connection.setHostnameVerifier((hostname, session) -> true);
             connection.setRequestMethod("GET");
             connection.setDoInput(true);
@@ -268,9 +276,11 @@ public class ServerConnection {
             if(supportsInsecureHTTP(ip, filePort)) {
                 throw new IOException("HTTP server is insecure");
             }
+
             URL url = new URI( "https://" + ip + ":" + filePort + "/" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "?action_id=" + actionId + "&client_id=" + clientId).toURL();
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-            connection.setSSLSocketFactory(sslContext.getSocketFactory());
+            if(sslSocketFactory == null) sslSocketFactory = sslContext.getSocketFactory();
+            connection.setSSLSocketFactory(sslSocketFactory);
             connection.setHostnameVerifier((hostname, session) -> true);
             connection.setDoOutput(true);
             connection.setRequestMethod(replace ? "PUT" : "POST");
@@ -437,17 +447,23 @@ public class ServerConnection {
      * @return true if an insecure HTTP connection can be established
      */
     public static boolean supportsInsecureHTTP(String host, int port) {
-        try {
-            URL httpUrl = new URI("http://" + host + ":" + port).toURL();
-            HttpURLConnection httpConnection = (HttpURLConnection) httpUrl.openConnection();
-            httpConnection.setRequestMethod("GET");
-            httpConnection.connect();
-            httpConnection.getResponseCode(); // should throw here if https
-            httpConnection.disconnect();
-        } catch(IOException | URISyntaxException e) {
-            return false;
+        synchronized(supportsInsecureHttpCache) {
+            String cacheKey = host + ":" + port;
+            if(supportsInsecureHttpCache.containsKey(cacheKey)) return supportsInsecureHttpCache.get(cacheKey);
+            try {
+                URL httpUrl = new URI("http://" + host + ":" + port).toURL();
+                HttpURLConnection httpConnection = (HttpURLConnection) httpUrl.openConnection();
+                httpConnection.setRequestMethod("GET");
+                httpConnection.connect();
+                httpConnection.getResponseCode(); // should throw here if https
+                httpConnection.disconnect();
+            } catch(IOException | URISyntaxException e) {
+                supportsInsecureHttpCache.put(cacheKey, false);
+                return false;
+            }
+            supportsInsecureHttpCache.put(cacheKey, true);
+            return true;
         }
-        return true;
     }
 
     public static void addConnectListener(ConnectionListener listener) {
