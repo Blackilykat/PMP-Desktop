@@ -305,7 +305,7 @@ public class Audio {
                             try {
                                 double positionSeconds = audio.currentSession.getPosition() / audio.audioFormat.getSampleRate() / audio.audioFormat.getChannels() / audio.audioFormat.getSampleSizeInBits() * 8.0;
                                 audio.mpris.setPosition((int) (positionSeconds * 1_000_000));
-                            } catch(DBusException ignored) {}
+                            } catch(Exception ignored) {}
                         }
 
                         for (int i = 0; i < bufferSize - 3 &&
@@ -448,6 +448,8 @@ public class Audio {
 
                 } catch(DBusException e) {
                     LOGGER.error("Unknown DBUS error", e);
+                } catch(Exception e) {
+                    LOGGER.error("Unknown exception", e);
                 }
             };
 
